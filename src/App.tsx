@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Nabvar";
+import RutaProtegida from "./components/RutaProtegida";
+import LoginPage from "./pages/Login";
 import DuenosPage from "./pages/Duenos";
 import MascotasPage from "./pages/Mascotas";
 import CitasPage from "./pages/Citas";
@@ -10,23 +12,97 @@ import TratamientosPage from "./pages/Tratamientos";
 import MedicosPage from "./pages/Medicos";
 import UsuariosPage from "./pages/Usuarios";
 import PerfilesPage from "./pages/Perfiles";
+import { useAuth } from "./context/AuthContext";
 
 function App() {
+  const { usuario } = useAuth();
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      {usuario && <Navbar />}
       <Routes>
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<Navigate to="/duenos" replace />} />
-        <Route path="/duenos" element={<DuenosPage />} />
-        <Route path="/mascotas" element={<MascotasPage />} />
-        <Route path="/citas" element={<CitasPage />} />
-        <Route path="/consultas" element={<ConsultasPage />} />
-        <Route path="/detalle-citas" element={<DetalleCitasPage />} />
-        <Route path="/medicamentos" element={<MedicamentosPage />} />
-        <Route path="/tratamientos" element={<TratamientosPage />} />
-        <Route path="/medicos" element={<MedicosPage />} />
-        <Route path="/usuarios" element={<UsuariosPage />} />
-        <Route path="/perfiles" element={<PerfilesPage />} />
+        <Route
+          path="/duenos"
+          element={
+            <RutaProtegida>
+              <DuenosPage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/mascotas"
+          element={
+            <RutaProtegida>
+              <MascotasPage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/citas"
+          element={
+            <RutaProtegida>
+              <CitasPage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/consultas"
+          element={
+            <RutaProtegida>
+              <ConsultasPage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/detalle-citas"
+          element={
+            <RutaProtegida>
+              <DetalleCitasPage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/medicamentos"
+          element={
+            <RutaProtegida>
+              <MedicamentosPage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/tratamientos"
+          element={
+            <RutaProtegida>
+              <TratamientosPage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/medicos"
+          element={
+            <RutaProtegida>
+              <MedicosPage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/usuarios"
+          element={
+            <RutaProtegida>
+              <UsuariosPage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/perfiles"
+          element={
+            <RutaProtegida>
+              <PerfilesPage />
+            </RutaProtegida>
+          }
+        />
       </Routes>
     </div>
   );
