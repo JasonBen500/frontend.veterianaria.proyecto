@@ -13,6 +13,7 @@ import MedicosPage from "./pages/Medicos";
 import UsuariosPage from "./pages/Usuarios";
 import PerfilesPage from "./pages/Perfiles";
 import { useAuth } from "./context/AuthContext";
+import RegistroWizard from "./pages/RegistroWizard";
 
 function App() {
   const { usuario } = useAuth();
@@ -100,6 +101,14 @@ function App() {
           element={
             <RutaProtegida>
               <PerfilesPage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/registro"
+          element={
+            <RutaProtegida>
+              <RegistroWizard />
             </RutaProtegida>
           }
         />

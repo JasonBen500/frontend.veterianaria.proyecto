@@ -12,6 +12,7 @@ const enlaces = [
   { to: "/medicos", label: "Médicos" },
   { to: "/usuarios", label: "Usuarios" },
   { to: "/perfiles", label: "Perfiles" },
+  { to: "/registro", label: "Nuevo Registro" },
 ];
 
 function Navbar() {
