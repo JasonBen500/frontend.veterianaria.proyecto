@@ -8,6 +8,7 @@ import {
 } from "../services/usuariosService";
 import type { Usuarios } from "../types/usuarios";
 import Mensaje from "../components/Mensaje";
+import AccionesFila from "../components/AccionesFilas";
 
 const formInicial: Usuarios = {
   idUsuario: null,
@@ -181,6 +182,9 @@ function UsuariosPage() {
             <th className="bg-gray-100 text-left px-4 py-2 text-sm font-semibold text-gray-600">
               Correo
             </th>
+            <th className="bg-gray-100 text-left px-4 py-2 text-sm font-semibold text-gray-600">
+              Perfil
+            </th>
             <th className="bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600">
               Acciones
             </th>
@@ -198,21 +202,16 @@ function UsuariosPage() {
               <td className="px-4 py-2 border-t text-sm text-gray-700">
                 {u.correo}
               </td>
+              <td className="px-4 py-2 border-t text-sm text-gray-700">
+                {u.nombrePerfil ?? "—"}
+              </td>
               <td className="px-4 py-2 border-t text-sm text-center">
-                <button
-                  onClick={() => handleModificar(u)}
-                  className="text-blue-600 hover:underline mr-3"
-                >
-                  Modificar
-                </button>
-                <button
-                  onClick={() =>
-                    u.idUsuario !== null && handleAnular(u.idUsuario)
-                  }
-                  className="text-red-600 hover:underline"
-                >
-                  Anular
-                </button>
+                <td className="px-4 py-2 border-t text-sm text-center">
+                  <AccionesFila
+                    onEditar={() => handleModificar(u)}
+                    onAnular={() => u.idUsuario !== null && handleAnular(u.idUsuario)}
+                  />
+                </td>
               </td>
             </tr>
           ))}

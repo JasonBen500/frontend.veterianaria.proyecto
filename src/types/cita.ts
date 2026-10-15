@@ -7,4 +7,7 @@ export interface Cita {
   idMascota: number;
   idMedico: number;
   idUsuario: number;
+  nombreMascota?: string;
+  nombreMedico?: string;
+  nombreUsuario?: string;
 }

@@ -6,4 +6,5 @@ export interface Medico {
   especialidad: string;
   estado: boolean;
   idUsuario: number;
+  nombreUsuario?: string;
 }

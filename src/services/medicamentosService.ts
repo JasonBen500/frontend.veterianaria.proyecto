@@ -11,3 +11,5 @@ export const modificarMedicamento = (
 ) => api.put(`/medicamentos/${id}`, data);
 export const anularMedicamento = (id: number) =>
   api.patch(`/medicamentos/${id}/anular`);
+export const eliminarMedicamento = (id: number) =>
+  api.delete(`/medicamentos/${id}`);

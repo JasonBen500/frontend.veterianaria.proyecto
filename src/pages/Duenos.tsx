@@ -8,6 +8,7 @@ import {
 } from "../services/duenoService";
 import type { Dueno } from "../types/dueno";
 import Mensaje from "../components/Mensaje";
+import AccionesFila from "../components/AccionesFilas";
 
 const formInicial: Dueno = {
   idDueno: null,
@@ -186,18 +187,12 @@ function DuenosPage() {
                 {d.direccion}
               </td>
               <td className="px-4 py-2 border-t text-sm text-center">
-                <button
-                  onClick={() => handleModificar(d)}
-                  className="text-blue-600 hover:underline mr-3"
-                >
-                  Modificar
-                </button>
-                <button
-                  onClick={() => d.idDueno !== null && handleAnular(d.idDueno)}
-                  className="text-red-600 hover:underline"
-                >
-                  Anular
-                </button>
+                <td className="px-4 py-2 border-t text-sm text-center">
+                  <AccionesFila
+                    onEditar={() => handleModificar(d)}
+                    onAnular={() => d.idDueno !== null && handleAnular(d.idDueno)}
+                  />
+                </td>
               </td>
             </tr>
           ))}

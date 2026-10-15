@@ -8,6 +8,7 @@ import {
 } from "../services/perfilService";
 import type { Perfil } from "../types/perfil";
 import Mensaje from "../components/Mensaje";
+import AccionesFila from "../components/AccionesFilas";
 
 const formInicial: Perfil = {
   idPerfil: null,
@@ -132,20 +133,12 @@ function PerfilesPage() {
                 {p.nombrePerfil}
               </td>
               <td className="px-4 py-2 border-t text-sm text-center">
-                <button
-                  onClick={() => handleModificar(p)}
-                  className="text-blue-600 hover:underline mr-3"
-                >
-                  Modificar
-                </button>
-                <button
-                  onClick={() =>
-                    p.idPerfil !== null && handleAnular(p.idPerfil)
-                  }
-                  className="text-red-600 hover:underline"
-                >
-                  Anular
-                </button>
+                <td className="px-4 py-2 border-t text-sm text-center">
+                  <AccionesFila
+                    onEditar={() => handleModificar(p)}
+                    onAnular={() => p.idPerfil !== null && handleAnular(p.idPerfil)}
+                  />
+                </td>
               </td>
             </tr>
           ))}

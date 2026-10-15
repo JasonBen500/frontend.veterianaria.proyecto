@@ -8,6 +8,7 @@ import {
 } from "../services/detalleCitaService";
 import type { DetalleCita } from "../types/detalleCita";
 import Mensaje from "../components/Mensaje";
+import AccionesFila from "../components/AccionesFilas";
 
 const formInicial: DetalleCita = {
   idDetalleCita: null,
@@ -186,29 +187,21 @@ function DetalleCitasPage() {
                 {d.precioAplicado}
               </td>
               <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {d.idCita}
+                {d.descripcionCita ?? "—"}
               </td>
               <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {d.idMedicamento}
+                {d.nombreMedicamento ?? "—"}
               </td>
               <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {d.idTratamiento}
+                {d.nombreTratamiento ?? "—"}
               </td>
               <td className="px-4 py-2 border-t text-sm text-center">
-                <button
-                  onClick={() => handleModificar(d)}
-                  className="text-blue-600 hover:underline mr-3"
-                >
-                  Modificar
-                </button>
-                <button
-                  onClick={() =>
-                    d.idDetalleCita !== null && handleAnular(d.idDetalleCita)
-                  }
-                  className="text-red-600 hover:underline"
-                >
-                  Anular
-                </button>
+                <td className="px-4 py-2 border-t text-sm text-center">
+                  <AccionesFila
+                    onEditar={() => handleModificar(d)}
+                    onAnular={() => d.idDetalleCita !== null && handleAnular(d.idDetalleCita)}
+                  />
+                </td>
               </td>
             </tr>
           ))}

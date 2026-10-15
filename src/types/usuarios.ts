@@ -6,4 +6,5 @@ export interface Usuarios {
   correo: string;
   estado: boolean;
   idPerfil: number;
+  nombrePerfil?: string;
 }

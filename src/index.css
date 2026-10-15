@@ -1,1 +1,25 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --color-marca-blanco: #FFFFFF;
+  --color-marca-oscuro: #272d4d;
+  --color-marca-vino: #b83564;
+  --color-marca-coral: #ff6a5a;
+  --color-marca-naranja: #ffb350;
+  --color-marca-verde: #83b8aa;
+  --color-marca-beige: #FFCF9C;
+  --color-marca-beigeclaro: #f7f7c6;
+  --color-marca-beigeclaro2: #F3F2E3;
+  --color-marca-beige-claro: #f0f0d8;
+  --color-marca-beige-verde-claro: #b4debe;
+  --color-marca-beige-verde-semiclaro: #77cca4;
+  --color-marca-grisclaro: #666666;
+  --color-marca-turquesa: #404467;
+  --color-marca-azulmarino: #010937;
+  --color-marca-transparente: rgb(0 0 0 / 0);
+
+  --font-sans: "Google Sans Flex Variable", sans-serif;
+  --font-nunito: "Nunito", sans-serif;
+}

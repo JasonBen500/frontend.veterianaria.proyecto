@@ -6,4 +6,5 @@ export interface Mascota {
   peso: number;
   estado: boolean;
   idDueno: number;
+  nombreDueno?: string;
 }

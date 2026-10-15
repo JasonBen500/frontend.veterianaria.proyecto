@@ -7,3 +7,5 @@ export const agregarCita = (data: Omit<Cita, "idCita">) =>
 export const modificarCita = (id: number, data: Omit<Cita, "idCita">) =>
   api.put(`/citas/${id}`, data);
 export const anularCita = (id: number) => api.patch(`/citas/${id}/anular`);
+
+export const eliminarCita = (id: number) => api.delete(`/citas/${id}`);

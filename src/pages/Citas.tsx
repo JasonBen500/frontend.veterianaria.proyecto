@@ -5,9 +5,11 @@ import {
   agregarCita,
   modificarCita,
   anularCita,
+  eliminarCita,
 } from "../services/citaService";
 import type { Cita } from "../types/cita";
 import Mensaje from "../components/Mensaje";
+import AccionesFila from "../components/AccionesFilas";
 
 const formInicial: Cita = {
   idCita: null,
@@ -87,6 +89,22 @@ function CitasPage() {
     try {
       await anularCita(id);
       setMensaje("Cita anulada correctamente");
+      cargarCitas();
+    } catch (error) {
+      setMensaje(obtenerMensajeError(error));
+    }
+  };
+
+  const handleEliminar = async (id: number) => {
+    if (
+      !window.confirm(
+        "¿Seguro que deseas eliminar esta cita? Se eliminarán también sus detalles. Esta acción no se puede deshacer.",
+      )
+    )
+      return;
+    try {
+      await eliminarCita(id);
+      setMensaje("Cita eliminada correctamente");
       cargarCitas();
     } catch (error) {
       setMensaje(obtenerMensajeError(error));
@@ -226,24 +244,19 @@ function CitasPage() {
                 {c.total}
               </td>
               <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {c.idMascota}
+                {c.nombreMascota ?? "—"}
               </td>
               <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {c.idMedico}
+                {c.nombreMedico ?? "—"}
               </td>
               <td className="px-4 py-2 border-t text-sm text-center">
-                <button
-                  onClick={() => handleModificar(c)}
-                  className="text-blue-600 hover:underline mr-3"
-                >
-                  Modificar
-                </button>
-                <button
-                  onClick={() => c.idCita !== null && handleAnular(c.idCita)}
-                  className="text-red-600 hover:underline"
-                >
-                  Anular
-                </button>
+                <td className="px-4 py-2 border-t text-sm text-center">
+                  <AccionesFila
+                    onEditar={() => handleModificar(c)}
+                    onAnular={() => c.idCita !== null && handleAnular(c.idCita)}
+                    onEliminar={() => c.idCita !== null && handleEliminar(c.idCita)}
+                  />
+                </td>
               </td>
             </tr>
           ))}

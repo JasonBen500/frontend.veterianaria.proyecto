@@ -8,6 +8,7 @@ import {
 } from "../services/consultaService";
 import type { Consulta } from "../types/consulta";
 import Mensaje from "../components/Mensaje";
+import AccionesFila from "../components/AccionesFilas";
 
 const formInicial: Consulta = {
   idConsulta: null,
@@ -172,23 +173,15 @@ function ConsultasPage() {
                 {c.sintomas}
               </td>
               <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {c.idCita}
+                {c.descripcionCita ?? "—"}
               </td>
               <td className="px-4 py-2 border-t text-sm text-center">
-                <button
-                  onClick={() => handleModificar(c)}
-                  className="text-blue-600 hover:underline mr-3"
-                >
-                  Modificar
-                </button>
-                <button
-                  onClick={() =>
-                    c.idConsulta !== null && handleAnular(c.idConsulta)
-                  }
-                  className="text-red-600 hover:underline"
-                >
-                  Anular
-                </button>
+                <td className="px-4 py-2 border-t text-sm text-center">
+                  <AccionesFila
+                    onEditar={() => handleModificar(c)}
+                    onAnular={() => c.idConsulta !== null && handleAnular(c.idConsulta)}
+                  />
+                </td>
               </td>
             </tr>
           ))}

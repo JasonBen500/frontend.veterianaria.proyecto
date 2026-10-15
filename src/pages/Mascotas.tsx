@@ -8,6 +8,7 @@ import {
 } from "../services/mascotaService";
 import type { Mascota } from "../types/mascota";
 import Mensaje from "../components/Mensaje";
+import AccionesFila from "../components/AccionesFilas";
 
 const formInicial: Mascota = {
   idMascota: null,
@@ -190,7 +191,7 @@ function MascotasPage() {
               Peso
             </th>
             <th className="bg-gray-100 text-left px-4 py-2 text-sm font-semibold text-gray-600">
-              ID Dueño
+              Dueño
             </th>
             <th className="bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600">
               Acciones
@@ -213,23 +214,15 @@ function MascotasPage() {
                 {m.peso}
               </td>
               <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {m.idDueno}
+                {m.nombreDueno ?? "—"}
               </td>
               <td className="px-4 py-2 border-t text-sm text-center">
-                <button
-                  onClick={() => handleModificar(m)}
-                  className="text-blue-600 hover:underline mr-3"
-                >
-                  Modificar
-                </button>
-                <button
-                  onClick={() =>
-                    m.idMascota !== null && handleAnular(m.idMascota)
-                  }
-                  className="text-red-600 hover:underline"
-                >
-                  Anular
-                </button>
+                <td className="px-4 py-2 border-t text-sm text-center">
+                  <AccionesFila
+                    onEditar={() => handleModificar(m)}
+                    onAnular={() => m.idMascota !== null && handleAnular(m.idMascota)}
+                  />
+                </td>
               </td>
             </tr>
           ))}

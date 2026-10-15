@@ -4,4 +4,5 @@ export interface Consulta {
   sintomas: string;
   estado: boolean;
   idCita: number;
+  descripcionCita?: string;
 }

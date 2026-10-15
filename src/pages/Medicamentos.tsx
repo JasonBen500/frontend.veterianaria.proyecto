@@ -5,9 +5,11 @@ import {
   agregarMedicamento,
   modificarMedicamento,
   anularMedicamento,
+  eliminarMedicamento,
 } from "../services/medicamentosService";
 import type { Medicamentos } from "../types/medicamentos";
 import Mensaje from "../components/Mensaje";
+import AccionesFila from "../components/AccionesFilas";
 
 const formInicial: Medicamentos = {
   idMedicamento: null,
@@ -83,6 +85,22 @@ function MedicamentosPage() {
     try {
       await anularMedicamento(id);
       setMensaje("Medicamento anulado correctamente");
+      cargarMedicamentos();
+    } catch (error) {
+      setMensaje(obtenerMensajeError(error));
+    }
+  };
+
+  const handleEliminar = async (id: number) => {
+    if (
+      !window.confirm(
+        "¿Seguro que deseas eliminar este medicamento? Esta acción no se puede deshacer.",
+      )
+    )
+      return;
+    try {
+      await eliminarMedicamento(id);
+      setMensaje("Medicamento eliminado correctamente");
       cargarMedicamentos();
     } catch (error) {
       setMensaje(obtenerMensajeError(error));
@@ -196,20 +214,13 @@ function MedicamentosPage() {
                 {m.stock}
               </td>
               <td className="px-4 py-2 border-t text-sm text-center">
-                <button
-                  onClick={() => handleModificar(m)}
-                  className="text-blue-600 hover:underline mr-3"
-                >
-                  Modificar
-                </button>
-                <button
-                  onClick={() =>
-                    m.idMedicamento !== null && handleAnular(m.idMedicamento)
-                  }
-                  className="text-red-600 hover:underline"
-                >
-                  Anular
-                </button>
+                <td className="px-4 py-2 border-t text-sm text-center">
+                  <AccionesFila
+                    onEditar={() => handleModificar(m)}
+                    onAnular={() => m.idMedicamento !== null && handleAnular(m.idMedicamento)}
+                    onEliminar={() => m.idMedicamento !== null && handleEliminar(m.idMedicamento)}
+                  />
+                </td>
               </td>
             </tr>
           ))}
