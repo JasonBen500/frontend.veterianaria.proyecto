@@ -44,7 +44,7 @@ function Sidebar() {
         )}
       >
         {abierto && (
-          <span className="text-xl font-extrabold tracking-wide">
+          <span className="font-nunito text-xl font-extrabold tracking-wide">
             FIROLAIV
           </span>
         )}

@@ -11,3 +11,5 @@ export const modificarDetalleCita = (
 ) => api.put(`/detalle-citas/${id}`, data);
 export const anularDetalleCita = (id: number) =>
   api.patch(`/detalle-citas/${id}/anular`);
+export const listarDetallesTodos = () =>
+  api.get<DetalleCita[]>("/detalle-citas");

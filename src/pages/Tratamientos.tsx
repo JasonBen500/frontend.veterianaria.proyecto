@@ -1,14 +1,25 @@
+//---IMPORTACIONES--//
 import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
+import TablaDatos, { type ColumnaTabla } from "../components/TablaDatos";
+import logazul from "../assets/images/LogoAzul.png";
 import {
   listarTratamientosActivos,
   agregarTratamiento,
   modificarTratamiento,
   anularTratamiento,
 } from "../services/tratamientoService";
+import { HomeIcon, ChevronRight, Plus, Syringe } from "lucide-react";
 import type { Tratamiento } from "../types/tratamiento";
 import Mensaje from "../components/Mensaje";
+import AccionesFila from "../components/AccionesFilas";
+import Modal from "../components/Modal";
+import BotonesExportar from "../components/BotonesExportar";
+import { reporteTratamientos } from "../utiils/reportes"; // Asegúrate de tener esto configurado
+//-------------------------------------------------------------//
 
+//--INFO TRATAMIENTOS--//
 const formInicial: Tratamiento = {
   idTratamiento: null,
   nombre: "",
@@ -21,6 +32,7 @@ function TratamientosPage() {
   const [form, setForm] = useState<Tratamiento>(formInicial);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [mensaje, setMensaje] = useState("");
+  const [modalAbierto, setModalAbierto] = useState(false);
 
   const cargarTratamientos = async () => {
     try {
@@ -42,7 +54,25 @@ function TratamientosPage() {
       [name]: name === "precio" ? Number(value) : value,
     }));
   };
+  //-----------------------------------------------//
 
+  //---VENTANA EMERGENTE----//
+  const abrirNuevo = () => {
+    setForm(formInicial);
+    setModoEdicion(false);
+    setMensaje("");
+    setModalAbierto(true);
+  };
+
+  const cerrarModal = () => {
+    setModalAbierto(false);
+    setForm(formInicial);
+    setModoEdicion(false);
+    setMensaje("");
+  };
+  //---------------------//
+
+  //------POR SI SALE MAL-------/
   const obtenerMensajeError = (error: unknown): string => {
     if (axios.isAxiosError(error)) {
       return error.response?.data?.mensaje ?? error.message;
@@ -50,7 +80,9 @@ function TratamientosPage() {
     if (error instanceof Error) return error.message;
     return "Ocurrió un error inesperado";
   };
+  //----------------------------------------//
 
+  //----------------ACTUALIZAR-------------------//
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
@@ -61,6 +93,7 @@ function TratamientosPage() {
         await agregarTratamiento(form);
         setMensaje("Tratamiento creado correctamente");
       }
+      setModalAbierto(false);
       setForm(formInicial);
       setModoEdicion(false);
       cargarTratamientos();
@@ -72,8 +105,12 @@ function TratamientosPage() {
   const handleModificar = (tratamiento: Tratamiento) => {
     setForm(tratamiento);
     setModoEdicion(true);
+    setMensaje("");
+    setModalAbierto(true);
   };
+  //----------------------------------------------//
 
+  //------------------ANULAR---------------------//
   const handleAnular = async (id: number) => {
     if (!window.confirm("¿Seguro que deseas anular este tratamiento?")) return;
     try {
@@ -84,97 +121,149 @@ function TratamientosPage() {
       setMensaje(obtenerMensajeError(error));
     }
   };
+  //--------------------------------------//
+
+  //------------------LLAMAR PARA EL ORDEN DE LA TABLA----------------//
+  const columnasTabla: ColumnaTabla<Tratamiento>[] = [
+    { encabezado: "Nombre", valor: (t) => t.nombre },
+    { encabezado: "Precio", valor: (t) => `$${t.precio.toFixed(2)}` },
+  ];
+  //--------------------------------------------------------------//
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">
-        {modoEdicion ? "Modificar Tratamiento" : "Ingresar Tratamiento"}
-      </h2>
+    <div className="p-6 max-w-5xl mx-auto mb-4">
+      {/* CABECERA */}
+      <div className="flex items-center justify-between min-h-8 rounded-2xl border border-marca-oscuro/10 bg-marca-beigeclaro2 p-6 shadow-sm">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-xl font-nunito font-extrabold text-marca-oscuro md:text-4xl">
+            Tratamientos
+          </h1>
+
+          <div className="flex items-center gap-1 md:gap-2">
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 text-sm font-nunito font-bold text-marca-oscuro/70 hover:text-marca-oscuro transition-colors"
+            >
+              <HomeIcon size={15} />
+            </Link>
+
+            <Link
+              to="/administracion"
+              className="flex items-center gap-1 text-sm font-nunito font-bold text-marca-oscuro transition-colors"
+            >
+              <ChevronRight size={15} className="text-marca-oscuro/50" />
+              Administración
+            </Link>
+
+            <Link
+              to="/tratamientos"
+              className="flex items-center gap-1 text-sm font-nunito font-bold text-marca-oscuro transition-colors"
+            >
+              <ChevronRight size={15} className="text-marca-oscuro/50" />
+              Tratamientos
+            </Link>
+          </div>
+        </div>
+
+        <img
+          src={logazul}
+          alt="Logo de la clínica"
+          className="w-20"
+        />
+      </div>
+
+      {/* BOTÓN AGREGAR */}
+      <section className="mt-6 mb-4 flex justify-end">
+        <button
+          type="button"
+          onClick={abrirNuevo}
+          className="inline-flex items-center gap-2 rounded-full bg-marca-naranja px-5 py-2 font-nunito font-bold text-marca-oscuro transition hover:opacity-90"
+        >
+          <Plus size={20} />
+          Nuevo Tratamiento
+        </button>
+      </section>
+
+      {/* MODAL DE FORMULARIO */}
+      <Modal
+        abierto={modalAbierto}
+        titulo={modoEdicion ? "MODIFICAR TRATAMIENTO" : "NUEVO TRATAMIENTO"}
+        subtitulo={modoEdicion ? "Edita la información del tratamiento:" : "Ingresa los datos del nuevo tratamiento:"}
+        icono={Syringe}
+        onCerrar={cerrarModal}
+      >
+        <Mensaje texto={mensaje} />
+        <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block font-nunito text-lg font-semibold text-gray-700 mb-2">
+              Nombre:
+            </label>
+            <input
+              name="nombre"
+              value={form.nombre}
+              onChange={handleChange}
+              placeholder="Ej. Limpieza dental"
+              className="w-full border border-cafenigga rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+          <div>
+            <label className="block font-nunito text-lg font-semibold text-gray-700 mb-2">
+              Precio:
+            </label>
+            <input
+              type="number"
+              name="precio"
+              value={form.precio}
+              onChange={handleChange}
+              min={0}
+              step="0.01"
+              placeholder="0.00"
+              className="w-full border border-cafenigga rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          <div className="mt-8 col-span-full flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={cerrarModal}
+              className="rounded-full border border-marca-oscuro px-6 py-2 font-nunito font-bold text-marca-oscuro transition hover:bg-marca-oscuro hover:text-white"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="rounded-full bg-marca-naranja px-6 py-2 font-nunito font-bold text-marca-oscuro transition hover:opacity-90"
+            >
+              Guardar
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* CONTENEDOR TÍTULO DE TABLA Y BOTONES DE EXPORTAR */}
+      <div className="bg-marca-beigeclaro2 p-4 rounded-xl shadow-sm border border-gray-200 flex gap-4 mt-6">
+        <div className="mb-2 flex w-full flex-wrap items-center justify-between gap-80">
+          <h2 className="text-center text-2xl font-nunito font-extrabold text-gray-800">
+            Listado de Tratamientos
+          </h2>
+          <BotonesExportar {...reporteTratamientos} datos={tratamientos} />
+        </div>
+      </div>
+
       <Mensaje texto={mensaje} />
 
-      <form
-        onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 bg-white p-6 rounded-lg shadow"
-      >
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nombre
-          </label>
-          <input
-            name="nombre"
-            value={form.nombre}
-            onChange={handleChange}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+      {/* TABLA REUTILIZABLE */}
+      <TablaDatos
+        columnas={columnasTabla}
+        datos={tratamientos}
+        claveFila={(t) => t.idTratamiento}
+        acciones={(t) => (
+          <AccionesFila
+            onEditar={() => handleModificar(t)}
+            onAnular={() => t.idTratamiento !== null && handleAnular(t.idTratamiento)}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Precio
-          </label>
-          <input
-            type="number"
-            name="precio"
-            value={form.precio}
-            onChange={handleChange}
-            min={0}
-            step="0.01"
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
-        <button
-          type="submit"
-          className="col-span-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
-        >
-          Guardar
-        </button>
-      </form>
-
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">
-        Listado de Tratamientos
-      </h2>
-      <table className="w-full border-collapse bg-white rounded-lg shadow overflow-hidden">
-        <thead>
-          <tr>
-            <th className="bg-gray-100 text-left px-4 py-2 text-sm font-semibold text-gray-600">
-              Nombre
-            </th>
-            <th className="bg-gray-100 text-left px-4 py-2 text-sm font-semibold text-gray-600">
-              Precio
-            </th>
-            <th className="bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600">
-              Acciones
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {tratamientos.map((t) => (
-            <tr key={t.idTratamiento}>
-              <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {t.nombre}
-              </td>
-              <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {t.precio}
-              </td>
-              <td className="px-4 py-2 border-t text-sm text-center">
-                <button
-                  onClick={() => handleModificar(t)}
-                  className="text-blue-600 hover:underline mr-3"
-                >
-                  Modificar
-                </button>
-                <button
-                  onClick={() =>
-                    t.idTratamiento !== null && handleAnular(t.idTratamiento)
-                  }
-                  className="text-red-600 hover:underline"
-                >
-                  Anular
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        )}
+      />
     </div>
   );
 }

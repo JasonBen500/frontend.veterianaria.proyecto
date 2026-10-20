@@ -11,3 +11,5 @@ export const modificarTratamiento = (
 ) => api.put(`/tratamientos/${id}`, data);
 export const anularTratamiento = (id: number) =>
   api.patch(`/tratamientos/${id}/anular`);
+export const listarTratamientosTodos = () =>
+  api.get<Tratamiento[]>("/tratamientos");

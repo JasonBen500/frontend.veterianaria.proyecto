@@ -4,7 +4,7 @@
 
 @theme {
   --color-marca-blanco: #FFFFFF;
-  --color-marca-oscuro: #272d4d;
+  --color-marca-oscuro: #2A2F63;
   --color-marca-vino: #b83564;
   --color-marca-coral: #ff6a5a;
   --color-marca-naranja: #ffb350;
@@ -18,6 +18,8 @@
   --color-marca-grisclaro: #666666;
   --color-marca-turquesa: #404467;
   --color-marca-azulmarino: #010937;
+  --color-marca-verdehoja: #386641;
+  --color-marca-cafenigga: #3E2E22;
   --color-marca-transparente: rgb(0 0 0 / 0);
 
   --font-sans: "Google Sans Flex Variable", sans-serif;

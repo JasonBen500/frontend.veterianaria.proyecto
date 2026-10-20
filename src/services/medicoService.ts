@@ -7,3 +7,4 @@ export const agregarMedico = (data: Omit<Medico, "idMedico">) =>
 export const modificarMedico = (id: number, data: Omit<Medico, "idMedico">) =>
   api.put(`/medicos/${id}`, data);
 export const anularMedico = (id: number) => api.patch(`/medicos/${id}/anular`);
+export const listarMedicosTodos = () => api.get<Medico[]>("/medicos");

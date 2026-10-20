@@ -11,3 +11,4 @@ export const modificarConsulta = (
 ) => api.put(`/consultas/${id}`, data);
 export const anularConsulta = (id: number) =>
   api.patch(`/consultas/${id}/anular`);
+export const listarConsultasTodas = () => api.get<Consulta[]>("/consultas");

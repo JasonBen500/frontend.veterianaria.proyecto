@@ -11,3 +11,4 @@ export const modificarUsuario = (
 ) => api.put(`/usuarios/${id}`, data);
 export const anularUsuario = (id: number) =>
   api.patch(`/usuarios/${id}/anular`);
+export const listarUsuariosTodos = () => api.get<Usuarios[]>("/usuarios");

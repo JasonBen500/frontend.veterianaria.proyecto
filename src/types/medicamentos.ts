@@ -5,4 +5,5 @@ export interface Medicamentos {
   precio: number;
   stock: number;
   estado: boolean;
+  imagen?: string;
 }

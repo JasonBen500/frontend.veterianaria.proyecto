@@ -9,3 +9,4 @@ export const modificarCita = (id: number, data: Omit<Cita, "idCita">) =>
 export const anularCita = (id: number) => api.patch(`/citas/${id}/anular`);
 
 export const eliminarCita = (id: number) => api.delete(`/citas/${id}`);
+export const listarCitasTodas = () => api.get<Cita[]>("/citas");

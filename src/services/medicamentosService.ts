@@ -13,3 +13,9 @@ export const anularMedicamento = (id: number) =>
   api.patch(`/medicamentos/${id}/anular`);
 export const eliminarMedicamento = (id: number) =>
   api.delete(`/medicamentos/${id}`);
+export const listarMedicamentosTodos = () =>
+  api.get<Medicamentos[]>("/medicamentos");
+export const ajustarStockMedicamento = (id: number, cambio: number) =>
+  api.patch<Medicamentos>(`/medicamentos/${id}/stock`, null, {
+    params: { cambio },
+  });

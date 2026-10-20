@@ -8,3 +8,4 @@ export const agregarPerfil = (data: Omit<Perfil, "idPerfil">) =>
 export const modificarPerfil = (id: number, data: Omit<Perfil, "idPerfil">) =>
   api.put(`/perfiles/${id}`, data);
 export const anularPerfil = (id: number) => api.patch(`/perfiles/${id}/anular`);
+export const listarPerfilesTodos = () => api.get<Perfil[]>("/perfiles");

@@ -13,3 +13,4 @@ export const anularMascota = (id: number) =>
   api.patch(`/mascotas/${id}/anular`);
 export const listarMascotasPorDueno = (idDueno: number) =>
   api.get<Mascota[]>(`/mascotas/dueno/${idDueno}`);
+export const listarMascotasTodas = () => api.get<Mascota[]>("/mascotas");
