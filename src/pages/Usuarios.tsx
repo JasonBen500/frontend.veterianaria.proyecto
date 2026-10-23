@@ -1,22 +1,29 @@
 //---IMPORTACIONES--//
 import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 import axios from "axios";
-import TablaDatos, { type ColumnaTabla } from "../components/TablaDatos";
-import logazul from "../assets/images/LogoAzul.png";
 import {
   listarUsuariosActivos,
   agregarUsuario,
   modificarUsuario,
   anularUsuario,
 } from "../services/usuariosService";
-import { HomeIcon, ChevronRight, Plus, UserCog } from "lucide-react";
+import { UserCog, Plus, Lock, ShieldCheck, Mail, PawPrint } from "lucide-react";
 import type { Usuarios } from "../types/usuarios";
 import Mensaje from "../components/Mensaje";
 import AccionesFila from "../components/AccionesFilas";
-import Modal from "../components/Modal";
 import BotonesExportar from "../components/BotonesExportar";
-import { reporteUsuarios } from "../utiils/reportes"; // Asegúrate de definirlo en utils
+import { reporteUsuarios } from "../utils/reportes";
+import { listarPerfilesActivos } from "../services/perfilService";
+import type { Perfil } from "../types/perfil";
+import EncabezadoPagina from "../components/EncabezadoPagina";
+import BarraListado from "../components/BarraListado";
+import { filtrarPorTexto } from "../utils/busqueda";
+import ModalFormulario from "../components/formulario/ModalFormulario";
+import Campo from "../components/formulario/Campo";
+import {
+  CLASE_INPUT,
+  CLASE_SELECT,
+} from "../components/formulario/estilosFormulario";
 //-------------------------------------------------------------//
 
 //--INFO USUARIOS--//
@@ -32,10 +39,12 @@ const formInicial: Usuarios = {
 
 function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuarios[]>([]);
+  const [perfiles, setPerfiles] = useState<Perfil[]>([]);
   const [form, setForm] = useState<Usuarios>(formInicial);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
 
   const cargarUsuarios = async () => {
     try {
@@ -46,11 +55,25 @@ function UsuariosPage() {
     }
   };
 
+  const cargarPerfiles = async () => {
+    try {
+      const respuesta = await listarPerfilesActivos();
+      setPerfiles(respuesta.data);
+    } catch (error) {
+      console.error("Error al listar perfiles", error);
+    }
+  };
+
   useEffect(() => {
     cargarUsuarios();
   }, []);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+
+  useEffect(() => {
+    cargarPerfiles();
+  }, []);
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
@@ -126,52 +149,25 @@ function UsuariosPage() {
   };
   //--------------------------------------//
 
-  //------------------LLAMAR PARA EL ORDEN DE LA TABLA----------------//
-  const columnasTabla: ColumnaTabla<Usuarios>[] = [
-    { encabezado: "Nombre", valor: (u) => u.nombre },
-    { encabezado: "Usuario", valor: (u) => u.usuario },
-    { encabezado: "Correo", valor: (u) => u.correo },
-    { encabezado: "Perfil", valor: (u) => u.nombrePerfil ?? "—" },
-  ];
-  //--------------------------------------------------------------//
-
   return (
     <div className="p-6 max-w-5xl mx-auto mb-4">
       {/* CABECERA */}
-      <div className="flex items-center justify-between min-h-8 rounded-2xl border border-marca-oscuro/10 bg-marca-beigeclaro2 p-6 shadow-sm">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-nunito font-extrabold text-marca-oscuro md:text-4xl">
-            Usuarios
-          </h1>
+      <EncabezadoPagina
+        titulo="Usuarios"
+        ruta="/usuarios"
+        padres={[{ texto: "Administración", ruta: "/administracion" }]}
+        icono={UserCog}
+      />
 
-          <div className="flex items-center gap-1 md:gap-2">
-            <Link
-              to="/"
-              className="flex items-center gap-1.5 text-sm font-nunito font-bold text-marca-oscuro/70 hover:text-marca-oscuro transition-colors"
-            >
-              <HomeIcon size={15} />
-            </Link>
-
-             <Link
-              to="/administracion"
-              className="flex items-center gap-1 text-sm font-nunito font-bold text-marca-oscuro transition-colors"
-            >
-              <ChevronRight size={15} className="text-marca-oscuro/50" />
-              Administración
-            </Link>
-
-            <Link
-              to="/usuarios"
-              className="flex items-center gap-1 text-sm font-nunito font-bold text-marca-oscuro transition-colors"
-            >
-              <ChevronRight size={15} className="text-marca-oscuro/50" />
-              Usuarios
-            </Link>
-          </div>
-        </div>
-
-        <img src={logazul} alt="Logo de la clínica" className="w-20" />
-      </div>
+      <BarraListado
+        titulo="Listado de Usuarios"
+        exportar={<BotonesExportar {...reporteUsuarios} datos={usuarios} />}
+        busqueda={busqueda}
+        onBuscar={setBusqueda}
+        placeholder="Buscar por nombre, usuario, correo o perfil..."
+        textoBoton="Nuevo Usuario"
+        onNuevo={abrirNuevo}
+      />
 
       {/* BOTÓN AGREGAR */}
       <section className="mt-6 mb-4 flex justify-end">
@@ -186,122 +182,137 @@ function UsuariosPage() {
       </section>
 
       {/* MODAL DE FORMULARIO */}
-      <Modal
+      <ModalFormulario
         abierto={modalAbierto}
         titulo={modoEdicion ? "MODIFICAR USUARIO" : "NUEVO USUARIO"}
-        subtitulo={modoEdicion ? "Edita la información del usuario:" : "Ingresa los datos del nuevo usuario:"}
+        subtitulo={
+          modoEdicion
+            ? "Edita la información del usuario:"
+            : "Ingresa los datos del nuevo usuario:"
+        }
         icono={UserCog}
+        mensaje={mensaje}
+        onSubmit={handleSubmit}
         onCerrar={cerrarModal}
       >
-        <Mensaje texto={mensaje} />
-        <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block font-nunito text-lg font-semibold text-gray-700 mb-2">
-              Nombre:
-            </label>
-            <input
-              name="nombre"
-              value={form.nombre}
-              onChange={handleChange}
-              placeholder="Ej. Ana Torres"
-              className="w-full border border-cafenigga rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-          <div>
-            <label className="block font-nunito text-lg font-semibold text-gray-700 mb-2">
-              Usuario:
-            </label>
-            <input
-              name="usuario"
-              value={form.usuario}
-              onChange={handleChange}
-              placeholder="Ej. atorres"
-              className="w-full border border-cafenigga rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-          <div>
-            <label className="block font-nunito text-lg font-semibold text-gray-700 mb-2">
-              Contraseña:
-            </label>
-            <input
-              type="password"
-              name="contrasena"
-              value={form.contrasena}
-              onChange={handleChange}
-              placeholder="••••••••"
-              className="w-full border border-cafenigga rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-          <div>
-            <label className="block font-nunito text-lg font-semibold text-gray-700 mb-2">
-              Correo:
-            </label>
-            <input
-              type="email"
-              name="correo"
-              value={form.correo}
-              onChange={handleChange}
-              placeholder="Ej. ana.torres@email.com"
-              className="w-full border border-cafenigga rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block font-nunito text-lg font-semibold text-gray-700 mb-2">
-              ID Perfil:
-            </label>
-            <input
-              type="number"
-              name="idPerfil"
-              value={form.idPerfil}
-              onChange={handleChange}
-              min={1}
-              placeholder="Ej. 1"
-              className="w-full border border-cafenigga rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-
-          <div className="mt-8 col-span-full flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={cerrarModal}
-              className="rounded-full border border-marca-oscuro px-6 py-2 font-nunito font-bold text-marca-oscuro transition hover:bg-marca-oscuro hover:text-white"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="rounded-full bg-marca-naranja px-6 py-2 font-nunito font-bold text-marca-oscuro transition hover:opacity-90"
-            >
-              Guardar
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* CONTENEDOR TÍTULO DE TABLA Y BOTONES EXPORTAR */}
-      <div className="bg-marca-beigeclaro2 p-4 rounded-xl shadow-sm border border-gray-200 flex gap-4 mt-6">
-        <div className="mb-2 flex w-full flex-wrap items-center justify-between gap-100">
-          <h2 className="text-center text-2xl font-nunito font-extrabold text-gray-800">
-            Listado de Usuarios
-          </h2>
-          <BotonesExportar {...reporteUsuarios} datos={usuarios} />
-        </div>
-      </div>
+        <Campo etiqueta="Nombre:">
+          <input
+            name="nombre"
+            value={form.nombre}
+            onChange={handleChange}
+            placeholder="Ej. Ana Torres"
+            className={CLASE_INPUT}
+          />
+        </Campo>
+        <Campo etiqueta="Usuario:">
+          <input
+            name="usuario"
+            value={form.usuario}
+            onChange={handleChange}
+            placeholder="Ej. atorres"
+            className={CLASE_INPUT}
+          />
+        </Campo>
+        <Campo etiqueta="Contraseña:" icono={Lock}>
+          <input
+            type="password"
+            name="contrasena"
+            value={form.contrasena}
+            onChange={handleChange}
+            placeholder="••••••••"
+            className={CLASE_INPUT}
+          />
+        </Campo>
+        <Campo etiqueta="Correo:">
+          <input
+            type="email"
+            name="correo"
+            value={form.correo}
+            onChange={handleChange}
+            placeholder="Ej. ana.torres@email.com"
+            className={CLASE_INPUT}
+          />
+        </Campo>
+        <Campo etiqueta="Perfil:" icono={ShieldCheck} className="md:col-span-2">
+          <select
+            name="idPerfil"
+            value={form.idPerfil === 0 ? "" : form.idPerfil}
+            onChange={handleChange}
+            className={CLASE_SELECT}
+          >
+            <option value="" disabled className="bg-marca-beige-claro">
+              Seleccione un perfil de la lista...
+            </option>
+            {perfiles.map((p) => (
+              <option
+                key={p.idPerfil}
+                value={p.idPerfil ?? undefined}
+                className="bg-marca-beigeclaro2"
+              >
+                {p.nombrePerfil}
+              </option>
+            ))}
+          </select>
+        </Campo>
+      </ModalFormulario>
 
       <Mensaje texto={mensaje} />
 
-      {/* TABLA REUTILIZABLE */}
-      <TablaDatos
-        columnas={columnasTabla}
-        datos={usuarios}
-        claveFila={(u) => u.idUsuario}
-        acciones={(u) => (
-          <AccionesFila
-            onEditar={() => handleModificar(u)}
-            onAnular={() => u.idUsuario !== null && handleAnular(u.idUsuario)}
-          />
-        )}
-      />
+      {filtrarPorTexto(usuarios, busqueda).length === 0 ? (
+        <div className="mt-8 flex flex-col items-center gap-2 text-center">
+          <UserCog size={40} className="text-marca-verde" />
+          <p className="font-nunito text-sm font-bold text-marca-oscuro/60">
+            No hay usuarios para mostrar.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filtrarPorTexto(usuarios, busqueda).map((u) => (
+            <article
+              key={u.idUsuario}
+              className="group relative flex flex-col justify-between gap-4 overflow-hidden rounded-3xl border border-marca-oscuro/10 bg-marca-beigeclaro2 p-5 shadow-lg shadow-marca-cafenigga/15 transition hover:-translate-y-1"
+            >
+              <PawPrint
+                aria-hidden="true"
+                className="pointer-events-none absolute -bottom-5 -right-4 h-24 w-24 -rotate-12 text-marca-oscuro/5 transition group-hover:rotate-0"
+              />
+
+              <div className="relative flex items-start gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-marca-naranja/30 text-marca-oscuro shadow-sm">
+                  <UserCog size={28} />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate font-nunito text-lg font-extrabold text-marca-oscuro">
+                    {u.nombre}
+                  </h3>
+                  <p className="truncate font-nunito text-sm font-bold text-marca-oscuro/70">
+                    @{u.usuario}
+                  </p>
+                  <p className="mt-0.5 flex items-center gap-1.5 truncate font-nunito text-xs font-semibold text-marca-oscuro/60">
+                    <Mail size={13} className="shrink-0" />
+                    {u.correo}
+                  </p>
+                </div>
+              </div>
+
+              <div className="relative flex items-center justify-between border-t border-marca-oscuro/10 pt-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-marca-verde/30 px-3 py-1 font-nunito text-xs font-extrabold text-marca-oscuro">
+                  <ShieldCheck size={14} />
+                  {u.nombrePerfil ?? "Sin perfil"}
+                </span>
+
+                <AccionesFila
+                  onEditar={() => handleModificar(u)}
+                  onAnular={() =>
+                    u.idUsuario !== null && handleAnular(u.idUsuario)
+                  }
+                />
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

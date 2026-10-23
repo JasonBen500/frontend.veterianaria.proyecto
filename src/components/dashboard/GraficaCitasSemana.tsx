@@ -8,7 +8,7 @@ import {
   YAxis,
 } from "recharts";
 import type { Cita } from "../../types/cita";
-import { citasDeLaSemana } from "../../utiils/estadisticas";
+import { citasDeLaSemana } from "../../utils/estadisticas";
 
 interface Props {
   citas: Cita[];

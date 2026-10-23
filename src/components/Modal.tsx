@@ -1,7 +1,8 @@
 import { useEffect, useId, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { X, PawPrint, Bone } from "lucide-react";
 import type { ElementType } from "react";
+import logoazul from "../assets/images/LogoAzul.png";
 
 interface Props {
   abierto: boolean;
@@ -36,54 +37,72 @@ function Modal({ abierto, titulo, subtitulo, icono: Icono, onCerrar, children }:
   if (!abierto) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4  backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-marca-azulmarino/60 p-4 backdrop-blur-sm">
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby={idTitulo}
-        aria-labelledbyy={idSubtitulo}
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-marca-beigeclaro2 p-6 shadow-2xl"
+        aria-labelledby={`${idTitulo} ${idSubtitulo}`}
+        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-marca-oscuro/10 bg-marca-beigeclaro2 shadow-2xl shadow-marca-azulmarino/40"
       >
-     <div className="-mt-6 -mx-6 mb-6 p-6 flex items-start justify-between gap-4 bg-marca-naranja rounded-t-xl">
+        {/* Encabezado */}
+        <div className="relative flex shrink-0 items-center justify-between gap-4 overflow-hidden bg-marca-oscuro p-6">
+          <PawPrint
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-4 -top-6 h-32 w-32 rotate-12 text-white/5"
+          />
+          <Bone
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-4 left-1/2 h-14 w-14 -rotate-12 text-white/5"
+          />
 
-        <div className="flex items-center gap-3">
-  
-          {Icono && (
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-marca-oscuro/10 text-marca-oscuro">
-              <Icono size={50} />
-            </div>
-          )}
-
-          <div className="flex flex-col">
-            <h2
-              id={idTitulo}
-              className="font-nunito text-2xl font-black text-marca-oscuro"
-            >
-              {titulo}
-            </h2>
-            
-            {subtitulo && (
-              <h2
-                id={idSubtitulo} 
-                className="font-nunito text-sm font-bold text-marca-oscuro mt-1"
-              >
-                {subtitulo}
-              </h2>
+          <div className="relative flex min-w-0 items-center gap-4">
+            {Icono && (
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-marca-naranja text-marca-oscuro shadow-md">
+                <Icono size={28} />
+              </div>
             )}
+
+            <div className="min-w-0">
+              <h2
+                id={idTitulo}
+                className="truncate font-nunito text-2xl font-black text-white"
+              >
+                {titulo}
+              </h2>
+
+              {subtitulo && (
+                <p
+                  id={idSubtitulo}
+                  className="mt-0.5 font-nunito text-sm font-bold text-marca-beigeclaro"
+                >
+                  {subtitulo}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="relative flex shrink-0 items-center gap-3">
+            <div className="hidden rounded-2xl bg-marca-beigeclaro2 p-2 shadow-md sm:block">
+              <img
+                src={logoazul}
+                alt="Logo de la clínica"
+                className="w-14"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={onCerrar}
+              aria-label="Cerrar"
+              className="rounded-full p-2 text-white transition-colors hover:bg-white/15"
+            >
+              <X size={22} />
+            </button>
           </div>
         </div>
 
-          <button
-            type="button"
-            onClick={onCerrar}
-            aria-label="Cerrar"
-            className="rounded-lg p-2 text-marca-oscuro transition-colors hover:bg-marca-oscuro/10"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {children}
+        {/* Contenido con scroll */}
+        <div className="overflow-y-auto p-6">{children}</div>
       </div>
     </div>,
     document.body,

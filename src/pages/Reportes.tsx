@@ -10,11 +10,18 @@ import {
   Syringe,
   UserRound,
   Users,
+  ChartColumn,
+  Info,
   type LucideIcon,
 } from "lucide-react";
 import TarjetaReporte from "../components/reportes/TarjetaReporte";
-import { useDatosReportes } from "../hooks/useDatosReportes";
-import type { FiltroEstado } from "../utiils/estados";
+import SelectorEstado from "../components/reportes/SelectorEstado";
+import EncabezadoPagina from "../components/EncabezadoPagina";
+import {
+  useDatosReportes,
+  type ClaveReporte,
+} from "../hooks/useDatosReportes";
+import type { FiltroEstado } from "../utils/estados";
 import {
   reporteCitas,
   reporteConsultas,
@@ -27,87 +34,81 @@ import {
   reporteTratamientos,
   reporteUsuarios,
   type DefinicionReporte,
-} from "../utiils/reportes";
+} from "../utils/reportes";
 
-const OPCIONES_FILTRO: { valor: FiltroEstado; etiqueta: string }[] = [
-  { valor: "activos", etiqueta: "Activos" },
-  { valor: "inactivos", etiqueta: "Inactivos" },
-  { valor: "todos", etiqueta: "Todos" },
-];
+const NOMBRES: Record<ClaveReporte, string> = {
+  duenos: "Dueños",
+  mascotas: "Mascotas",
+  citas: "Citas",
+  consultas: "Consultas",
+  detalles: "Detalle de citas",
+  medicamentos: "Medicamentos",
+  tratamientos: "Tratamientos",
+  medicos: "Médicos",
+  usuarios: "Usuarios",
+  perfiles: "Perfiles",
+};
 
 function Reportes() {
   const datos = useDatosReportes();
-  const { cargando, error } = datos;
   const [filtro, setFiltro] = useState<FiltroEstado>("activos");
+
+  const modulosConError = (Object.keys(datos.errores) as ClaveReporte[])
+    .filter((clave) => datos.errores[clave])
+    .map((clave) => NOMBRES[clave]);
 
   // Arma una tarjeta. El tipo genérico T hace que TypeScript compruebe que el
   // reporte y la lista de registros pertenecen a la misma entidad.
   const tarjeta = <T extends { estado: boolean }>(
-    nombre: string,
+    clave: ClaveReporte,
     icono: LucideIcon,
     reporte: DefinicionReporte<T>,
     registros: T[],
   ) => (
     <TarjetaReporte
-      key={nombre}
-      nombre={nombre}
+      key={clave}
+      nombre={NOMBRES[clave]}
       icono={icono}
       reporte={reporte}
       registros={registros}
       filtro={filtro}
-      cargando={cargando}
-      error={error}
+      cargando={datos.cargando}
+      error={datos.errores[clave]}
     />
   );
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 p-6 md:p-10">
-      <div className="border-b border-marca-oscuro/10 pb-4">
-        <h1 className="font-nunito text-4xl font-extrabold text-marca-oscuro md:text-5xl">
-          Reportes
-        </h1>
-        <p className="mt-2 font-nunito text-sm font-semibold text-marca-oscuro/60">
+      <EncabezadoPagina titulo="Reportes" ruta="/reportes" icono={ChartColumn} />
+
+      <section className="flex flex-col gap-4 rounded-3xl border border-marca-oscuro/10 bg-marca-beigeclaro2 p-5 shadow-lg shadow-marca-cafenigga/15 md:flex-row md:items-center md:justify-between">
+        <p className="flex items-start gap-2 font-nunito text-sm font-semibold text-marca-oscuro/70">
+          <Info size={18} className="mt-0.5 shrink-0 text-marca-oscuro" />
           Descarga o consulta la información de cada módulo en PDF o Excel.
           Elige si quieres incluir los registros activos, los inactivos
           (anulados) o todos.
         </p>
-      </div>
+        <SelectorEstado valor={filtro} onCambiar={setFiltro} />
+      </section>
 
-      {/* Selector de estado */}
-      <div className="inline-flex rounded-full border border-marca-oscuro/20 bg-white p-1">
-        {OPCIONES_FILTRO.map(({ valor, etiqueta }) => (
-          <button
-            key={valor}
-            type="button"
-            aria-pressed={filtro === valor}
-            onClick={() => setFiltro(valor)}
-            className={`rounded-full px-4 py-1.5 font-nunito text-sm font-bold transition-colors ${filtro === valor
-                ? "bg-marca-oscuro text-white"
-                : "text-marca-oscuro hover:bg-marca-oscuro/10"
-              }`}
-          >
-            {etiqueta}
-          </button>
-        ))}
-      </div>
-
-      {error && (
-        <p className="rounded-xl border border-marca-oscuro/10 bg-white p-4 font-nunito text-sm text-marca-oscuro">
-          No se pudieron cargar los datos del servidor.
+      {modulosConError.length > 0 && (
+        <p className="rounded-2xl border border-marca-vino/20 bg-white p-4 font-nunito text-sm font-semibold text-marca-oscuro shadow-sm">
+          No se pudieron cargar estos módulos: {modulosConError.join(", ")}. Los
+          demás reportes siguen disponibles.
         </p>
       )}
 
       <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {tarjeta("Dueños", Users, reporteDuenos, datos.duenos)}
-        {tarjeta("Mascotas", PawPrint, reporteMascotas, datos.mascotas)}
-        {tarjeta("Citas", CalendarDays, reporteCitas, datos.citas)}
-        {tarjeta("Consultas", ClipboardList, reporteConsultas, datos.consultas)}
-        {tarjeta("Detalle de citas", ListChecks, reporteDetalleCitas, datos.detalles)}
-        {tarjeta("Medicamentos", Pill, reporteMedicamentos, datos.medicamentos)}
-        {tarjeta("Tratamientos", Syringe, reporteTratamientos, datos.tratamientos)}
-        {tarjeta("Médicos", Stethoscope, reporteMedicos, datos.medicos)}
-        {tarjeta("Usuarios", UserRound, reporteUsuarios, datos.usuarios)}
-        {tarjeta("Perfiles", ShieldCheck, reportePerfiles, datos.perfiles)}
+        {tarjeta("duenos", Users, reporteDuenos, datos.duenos)}
+        {tarjeta("mascotas", PawPrint, reporteMascotas, datos.mascotas)}
+        {tarjeta("citas", CalendarDays, reporteCitas, datos.citas)}
+        {tarjeta("consultas", ClipboardList, reporteConsultas, datos.consultas)}
+        {tarjeta("detalles", ListChecks, reporteDetalleCitas, datos.detalles)}
+        {tarjeta("medicamentos", Pill, reporteMedicamentos, datos.medicamentos)}
+        {tarjeta("tratamientos", Syringe, reporteTratamientos, datos.tratamientos)}
+        {tarjeta("medicos", Stethoscope, reporteMedicos, datos.medicos)}
+        {tarjeta("usuarios", UserRound, reporteUsuarios, datos.usuarios)}
+        {tarjeta("perfiles", ShieldCheck, reportePerfiles, datos.perfiles)}
       </section>
     </div>
   );

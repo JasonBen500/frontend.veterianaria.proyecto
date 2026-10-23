@@ -11,3 +11,4 @@ export const anularDueno = (id: number) => api.patch(`/duenos/anular/${id}`);
 export const buscarDuenos = (texto: string) =>
   api.get<Dueno[]>("/duenos/buscar", { params: { texto } }); //Filtro para utilizar el formulario
 export const listarDuenosTodos = () => api.get<Dueno[]>("/duenos");
+export const obtenerUnDueno = (id: number) => api.get<Dueno>(`/duenos/${id}`);

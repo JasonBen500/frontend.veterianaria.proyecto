@@ -2,6 +2,20 @@ import type { Dueno } from "../types/dueno";
 import type { Mascota } from "../types/mascota";
 import type { Cita } from "../types/cita";
 
+export interface LineaTratamiento {
+  idTratamiento: number;
+  nombre: string;
+  precio: number;
+}
+
+export interface LineaMedicamento {
+  idMedicamento: number;
+  nombre: string;
+  precio: number;
+  stock: number;
+  cantidad: number;
+}
+
 export interface WizardState {
   paso: 1 | 2 | 3;
 
@@ -16,4 +30,5 @@ export interface WizardState {
   //PASO 3 OPCIONAL
   quiereAgendarCita: boolean;
   cita: Cita;
+
 }

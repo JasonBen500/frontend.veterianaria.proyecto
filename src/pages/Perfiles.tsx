@@ -1,21 +1,25 @@
 //---IMPORTACIONES--//
 import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 import axios from "axios";
 import TablaDatos, { type ColumnaTabla } from "../components/TablaDatos";
-import logazul from "../assets/images/LogoAzul.png";
 import {
   listarPerfilesActivos,
   agregarPerfil,
   modificarPerfil,
   anularPerfil,
 } from "../services/perfilService";
-import { HomeIcon, ChevronRight, Plus, Users } from "lucide-react";
+import { Users, ShieldCheck } from "lucide-react";
 import type { Perfil } from "../types/perfil";
 import Mensaje from "../components/Mensaje";
 import AccionesFila from "../components/AccionesFilas";
-import Modal from "../components/Modal";
-// Nota: Si en el futuro necesitas exportar perfiles, puedes importar BotonesExportar y reportePerfiles
+import { filtrarPorTexto } from "../utils/busqueda";
+import EncabezadoPagina from "../components/EncabezadoPagina";
+import BarraListado from "../components/BarraListado";
+import BotonesExportar from "../components/BotonesExportar";
+import { reportePerfiles } from "../utils/reportes";
+import ModalFormulario from "../components/formulario/ModalFormulario";
+import Campo from "../components/formulario/Campo";
+import { CLASE_INPUT } from "../components/formulario/estilosFormulario";
 //-------------------------------------------------------------//
 
 //--INFO PERFILES--//
@@ -31,6 +35,7 @@ function PerfilesPage() {
   const [modoEdicion, setModoEdicion] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
 
   const cargarPerfiles = async () => {
     try {
@@ -125,111 +130,57 @@ function PerfilesPage() {
   //--------------------------------------------------------------//
 
   return (
-    <div className="p-6 max-w-5xl mx-auto mb-4">
-      {/* CABECERA */}
-      <div className="flex items-center justify-between min-h-8 rounded-2xl border border-marca-oscuro/10 bg-marca-beigeclaro2 p-6 shadow-sm">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-nunito font-extrabold text-marca-oscuro md:text-4xl">
-            Perfiles
-          </h1>
+    <div className="p-6 max-w-6xl mx-auto mb-4">
+      {/* CABECERA (Con sombra unificada) */}
+      <EncabezadoPagina
+        titulo="Perfiles"
+        ruta="/perfiles"
+        padres={[{ texto: "Administración", ruta: "/administracion" }]}
+        icono={ShieldCheck}
+      />
 
-          <div className="flex items-center gap-1 md:gap-2">
-            <Link
-              to="/"
-              className="flex items-center gap-1.5 text-sm font-nunito font-bold text-marca-oscuro/70 hover:text-marca-oscuro transition-colors"
-            >
-              <HomeIcon size={15} />
-            </Link>
-
-            <Link
-              to="/administracion"
-              className="flex items-center gap-1 text-sm font-nunito font-bold text-marca-oscuro transition-colors"
-            >
-              <ChevronRight size={15} className="text-marca-oscuro/50" />
-              Administración
-            </Link>
-
-            <Link
-              to="/perfiles"
-              className="flex items-center gap-1 text-sm font-nunito font-bold text-marca-oscuro transition-colors"
-            >
-              <ChevronRight size={15} className="text-marca-oscuro/50" />
-              Perfiles
-            </Link>
-          </div>
-        </div>
-
-        <img src={logazul} alt="Logo de la clínica" className="w-20" />
-      </div>
-
-      {/* BOTÓN AGREGAR */}
-      <section className="mt-6 mb-4 flex justify-end">
-        <button
-          type="button"
-          onClick={abrirNuevo}
-          className="inline-flex items-center gap-2 rounded-full bg-marca-naranja px-5 py-2 font-nunito font-bold text-marca-oscuro transition hover:opacity-90"
-        >
-          <Plus size={20} />
-          Nuevo Perfil
-        </button>
-      </section>
+      <BarraListado
+        titulo="Listado de Perfiles"
+        exportar={<BotonesExportar {...reportePerfiles} datos={perfiles} />}
+        busqueda={busqueda}
+        onBuscar={setBusqueda}
+        placeholder="Buscar por nombre de perfil..."
+        textoBoton="Nuevo Perfil"
+        onNuevo={abrirNuevo}
+      />
+      <Mensaje texto={mensaje} />
 
       {/* MODAL DE FORMULARIO */}
-      <Modal
+      {/* MODAL DE FORMULARIO */}
+      <ModalFormulario
         abierto={modalAbierto}
         titulo={modoEdicion ? "MODIFICAR PERFIL" : "NUEVO PERFIL"}
-        subtitulo={modoEdicion ? "Edita la información del perfil:" : "Ingresa los datos del nuevo perfil:"}
+        subtitulo={
+          modoEdicion
+            ? "Edita la información del perfil:"
+            : "Ingresa los datos del nuevo perfil:"
+        }
         icono={Users}
+        mensaje={mensaje}
+        onSubmit={handleSubmit}
         onCerrar={cerrarModal}
+        claseGrid="grid-cols-1"
       >
-        <Mensaje texto={mensaje} />
-        <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-1 gap-4">
-          <div>
-            <label className="block font-nunito text-lg font-semibold text-gray-700 mb-2">
-              Nombre del Perfil:
-            </label>
-            <input
-              name="nombrePerfil"
-              value={form.nombrePerfil}
-              onChange={handleChange}
-              placeholder="Ej. Administrador"
-              className="w-full border border-cafenigga rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-
-          <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={cerrarModal}
-              className="rounded-full border border-marca-oscuro px-6 py-2 font-nunito font-bold text-marca-oscuro transition hover:bg-marca-oscuro hover:text-white"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="rounded-full bg-marca-naranja px-6 py-2 font-nunito font-bold text-marca-oscuro transition hover:opacity-90"
-            >
-              Guardar
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* CONTENEDOR TÍTULO DE TABLA */}
-      <div className="bg-marca-beigeclaro2 p-4 rounded-xl shadow-sm border border-gray-200 flex gap-4 mt-6">
-        <div className="mb-2 flex w-full items-center justify-between">
-          <h2 className="text-center text-2xl font-nunito font-extrabold text-gray-800">
-            Listado de Perfiles
-          </h2>
-        </div>
-      </div>
-
-      <Mensaje texto={mensaje} />
+        <Campo etiqueta="Nombre del Perfil:" icono={ShieldCheck}>
+          <input
+            name="nombrePerfil"
+            value={form.nombrePerfil}
+            onChange={handleChange}
+            placeholder="Ej. Administrador"
+            className={CLASE_INPUT}
+          />
+        </Campo>
+      </ModalFormulario>
 
       {/* TABLA REUTILIZABLE */}
       <TablaDatos
         columnas={columnasTabla}
-        datos={perfiles}
+        datos={filtrarPorTexto(perfiles, busqueda)}
         claveFila={(p) => p.idPerfil}
         acciones={(p) => (
           <AccionesFila

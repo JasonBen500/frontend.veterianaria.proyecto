@@ -4,94 +4,103 @@ import {
   UserPlus,
   FileUser,
   Stethoscope,
-  HomeIcon,
-  ChevronRight,
+  Settings,
+  PawPrint,
+  ArrowRight,
+  type LucideIcon,
 } from "lucide-react";
-import logazul from "../assets/images/LogoAzul.png";
+import { useAuth } from "../context/AuthContext";
+import EncabezadoPagina from "../components/EncabezadoPagina";
 
+interface Opcion {
+  to: string;
+  titulo: string;
+  descripcion: string;
+  icono: LucideIcon;
+  color: string;
+  soloAdmin?: boolean;
+}
 
+const OPCIONES: Opcion[] = [
+  {
+    to: "/tratamientos",
+    titulo: "Tratamientos",
+    descripcion: "Gestiona el catálogo de servicios y precios",
+    icono: Syringe,
+    color: "bg-marca-naranja/30",
+  },
+  {
+    to: "/perfiles",
+    titulo: "Perfiles",
+    descripcion: "Administra roles y permisos del sistema",
+    icono: UserPlus,
+    color: "bg-marca-verde/40",
+    soloAdmin: true,
+  },
+  {
+    to: "/usuarios",
+    titulo: "Usuarios",
+    descripcion: "Control de cuentas de acceso al sistema",
+    icono: FileUser,
+    color: "bg-marca-coral/25",
+    soloAdmin: true,
+  },
+  {
+    to: "/medicos",
+    titulo: "Médicos",
+    descripcion: "Registro del personal veterinario",
+    icono: Stethoscope,
+    color: "bg-marca-beige-verde-claro",
+  },
+];
 
 function Administracion() {
+  const { esAdmin } = useAuth();
+  const visibles = OPCIONES.filter((o) => !o.soloAdmin || esAdmin);
+
   return (
-    <div className="p-6 max-w-5xl mx-auto mb-4">
+    <div className="mx-auto mb-4 max-w-6xl p-6">
+      <EncabezadoPagina
+        titulo="Administración"
+        ruta="/administracion"
+        icono={Settings}
+      />
 
-      <div className="mb-5 flex items-center justify-between min-h-8 rounded-2xl border border-marca-oscuro/10 bg-marca-beigeclaro2 p-6 shadow-sm">
+      {/* MENÚ DE TARJETAS INTERACTIVAS */}
+      <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
+        {visibles.map(({ to, titulo, descripcion, icono: Icono, color }) => (
+          <Link
+            key={to}
+            to={to}
+            className="group relative flex items-center gap-5 overflow-hidden rounded-3xl border border-marca-oscuro/10 bg-marca-beigeclaro2 p-6 shadow-lg shadow-marca-cafenigga/15 transition-all duration-300 hover:-translate-y-1"
+          >
+            <PawPrint
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-6 -right-4 h-28 w-28 -rotate-12 text-marca-oscuro/5 transition group-hover:rotate-0"
+            />
 
-        <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-nunito font-extrabold text-marca-oscuro md:text-4xl">
-            Administración
-          </h1>
-
-          <div className="flex items-center gap-1 md:gap-2">
-            <Link
-              to="/"
-              className="flex items-center gap-1.5 text-sm font-nunito font-bold text-marca-oscuro/70 hover:text-marca-oscuro transition-colors"
+            <div
+              className={`relative flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl text-marca-oscuro shadow-sm transition-colors duration-300 group-hover:bg-marca-oscuro group-hover:text-white ${color}`}
             >
-              <HomeIcon size={15} />
-            </Link>
+              <Icono size={40} strokeWidth={1.75} />
+            </div>
 
-            <Link
-              to="/administracion"
-              className="flex items-center gap-1 text-sm font-nunito font-bold text-marca-oscuro transition-colors"
-            >
-              <ChevronRight size={15} className="text-marca-oscuro/50" />
-              Administración
-            </Link>
-          </div>
-        </div>
+            <div className="relative min-w-0 flex-1">
+              <h2 className="font-nunito text-2xl font-extrabold uppercase tracking-wide text-marca-oscuro">
+                {titulo}
+              </h2>
+              <p className="mt-1 font-nunito text-sm font-semibold text-marca-oscuro/60">
+                {descripcion}
+              </p>
+            </div>
 
-        <img
-          src={logazul}
-          alt="Logo de la clínica"
-          className="w-20"
-        />
+            <ArrowRight
+              size={22}
+              className="relative shrink-0 text-marca-oscuro/40 transition group-hover:translate-x-1 group-hover:text-marca-oscuro"
+            />
+          </Link>
+        ))}
       </div>
-
-
-      <div className=" p-4 grid grid-cols-2 grid-rows-2 gap-4 rounded-2xl border border-marca-oscuro/10 bg-marca-beigeclaro2 p-6 shadow-sm">
-
-        <Link
-          to="/tratamientos"
-          className="mt-9 mb-8 flex flex-col items-center justify-center gap-4 transition-all duration-300 hover:bg-marca-beigeclaro2 hover:border-cyan-400 hover:scale-[0.98]"
-        >
-          <Syringe size={120} className="text-gray-800" strokeWidth={1.5} />
-          <span className="text-lg font-nunito font-bold text-gray-600 uppercase tracking-wide">
-            Tratamientos
-          </span>
-        </Link>
-
-        <Link
-          to="/perfiles"
-          className="mt-9 mb-8 flex flex-col items-center justify-center gap-4 transition-all duration-300 hover:bg-marca-beigeclaro2 hover:border-cyan-400 hover:scale-[0.98]"
-        >
-          <UserPlus size={120} className="text-gray-800" strokeWidth={1.5} />
-          <span className="text-lg font-nunito font-bold text-gray-600 uppercase tracking-wide">
-            Perfiles
-          </span>
-        </Link>
-
-        <Link
-          to="/usuarios"
-          className="flex flex-col items-center justify-center gap-4 transition-all duration-300 hover:bg-marca-beigeclaro2 hover:border-cyan-400 hover:scale-[0.98]"
-        >
-          <FileUser size={120} className="text-gray-800" strokeWidth={1.5} />
-          <span className="text-lg font-nunito font-bold text-gray-600 uppercase tracking-wide">
-            Usuarios
-          </span>
-        </Link>
-
-        <Link
-          to="/medicos"
-          className="flex flex-col items-center justify-center gap-4 transition-all duration-300 hover:bg-marca-beigeclaro2 hover:border-cyan-400 hover:scale-[0.98]"
-        >
-          <Stethoscope size={120} className="text-gray-800" strokeWidth={1.5} />
-          <span className="text-lg font-nunito font-bold text-gray-600 uppercase tracking-wide">
-            Médicos
-          </span>
-        </Link>
-
-      </div>
-
     </div>
   );
 }

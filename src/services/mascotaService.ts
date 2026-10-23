@@ -14,3 +14,4 @@ export const anularMascota = (id: number) =>
 export const listarMascotasPorDueno = (idDueno: number) =>
   api.get<Mascota[]>(`/mascotas/dueno/${idDueno}`);
 export const listarMascotasTodas = () => api.get<Mascota[]>("/mascotas");
+export const obtenerUnaMascota = (id: number) => api.get<Mascota>(`/mascotas/${id}`);

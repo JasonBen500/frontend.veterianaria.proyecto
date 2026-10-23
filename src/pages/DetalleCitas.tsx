@@ -1,212 +1,316 @@
-import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
-import axios from "axios";
+import { useState, type ChangeEvent } from "react";
+import { ClipboardList } from "lucide-react";
 import {
   listarDetallesActivos,
   agregarDetalleCita,
   modificarDetalleCita,
   anularDetalleCita,
 } from "../services/detalleCitaService";
+import { listarCitasActivas } from "../services/citaService";
+import { listarMedicamentosActivos } from "../services/medicamentosService";
+import { listarTratamientosActivos } from "../services/tratamientoService";
 import type { DetalleCita } from "../types/detalleCita";
 import Mensaje from "../components/Mensaje";
 import AccionesFila from "../components/AccionesFilas";
+import TablaDatos, { type ColumnaTabla } from "../components/TablaDatos";
+import BotonesExportar from "../components/BotonesExportar";
+import EncabezadoPagina from "../components/EncabezadoPagina";
+import BarraListado from "../components/BarraListado";
+import ModalFormulario from "../components/formulario/ModalFormulario";
+import Campo from "../components/formulario/Campo";
+import {
+  CLASE_INPUT,
+  CLASE_SELECT,
+} from "../components/formulario/estilosFormulario";
+import { useCrud, type ConfigCrud } from "../hooks/useCrud";
+import { useLista } from "../hooks/useLista";
+import { reporteDetalleCitas } from "../utils/reportes";
+import { etiquetaCita } from "../utils/citas";
+import { filtrarPorTexto } from "../utils/busqueda";
 
-const formInicial: DetalleCita = {
-  idDetalleCita: null,
-  precioAplicado: 0,
-  estado: true,
-  idCita: 0,
-  idMedicamento: 0,
-  idTratamiento: 0,
+type TipoDetalle = "medicamento" | "tratamiento";
+
+type PayloadDetalle = Omit<DetalleCita, "idDetalleCita">;
+
+// El backend espera null/ausente en lo que no aplica (no un 0)
+const aPayload = (d: DetalleCita): PayloadDetalle =>
+  ({
+    precioAplicado: d.precioAplicado,
+    estado: d.estado,
+    idCita: d.idCita,
+    idMedicamento: d.idMedicamento || undefined,
+    idTratamiento: d.idTratamiento || undefined,
+    cantidad: d.cantidad ?? 1,
+  }) as PayloadDetalle;
+
+const configDetalles: ConfigCrud<DetalleCita> = {
+  listar: listarDetallesActivos,
+  agregar: (d) => agregarDetalleCita(aPayload(d)),
+  modificar: (id, d) => modificarDetalleCita(id, aPayload(d)),
+  anular: anularDetalleCita,
+  obtenerId: (d) => d.idDetalleCita,
+  camposNumericos: [
+    "precioAplicado",
+    "idCita",
+    "idMedicamento",
+    "idTratamiento",
+    "cantidad",
+  ],
+  vacio: {
+    idDetalleCita: null,
+    precioAplicado: 0,
+    estado: true,
+    idCita: 0,
+    idMedicamento: 0,
+    idTratamiento: 0,
+    cantidad: 1,
+  },
+  textos: {
+    creado: "Detalle creado correctamente",
+    actualizado: "Detalle actualizado correctamente",
+    anulado: "Detalle anulado correctamente",
+    confirmarAnular:
+      "¿Seguro que deseas anular este detalle? Si es un medicamento, su stock se devuelve al inventario.",
+    errorListar: "Error al listar detalles de cita",
+  },
 };
 
+const subtotal = (d: DetalleCita) =>
+  Number(d.precioAplicado) * (d.cantidad ?? 1);
+
+const columnasTabla: ColumnaTabla<DetalleCita>[] = [
+  { encabezado: "Cita", valor: (d) => d.descripcionCita ?? `Cita #${d.idCita}` },
+  {
+    encabezado: "Tipo",
+    valor: (d) => (d.idMedicamento ? "Medicamento" : "Tratamiento"),
+  },
+  {
+    encabezado: "Concepto",
+    valor: (d) => d.nombreMedicamento ?? d.nombreTratamiento ?? "—",
+  },
+  { encabezado: "Cantidad", valor: (d) => d.cantidad ?? 1 },
+  {
+    encabezado: "Precio",
+    valor: (d) => `Q ${Number(d.precioAplicado).toFixed(2)}`,
+  },
+  { encabezado: "Subtotal", valor: (d) => `Q ${subtotal(d).toFixed(2)}` },
+];
+
 function DetalleCitasPage() {
-  const [detalles, setDetalles] = useState<DetalleCita[]>([]);
-  const [form, setForm] = useState<DetalleCita>(formInicial);
-  const [modoEdicion, setModoEdicion] = useState(false);
-  const [mensaje, setMensaje] = useState("");
+  const crud = useCrud(configDetalles);
+  const citas = useLista(listarCitasActivas);
+  const medicamentos = useLista(listarMedicamentosActivos);
+  const tratamientos = useLista(listarTratamientosActivos);
 
-  const cargarDetalles = async () => {
-    try {
-      const respuesta = await listarDetallesActivos();
-      setDetalles(respuesta.data);
-    } catch (error) {
-      console.error("Error al listar detalles de cita", error);
+  const [busqueda, setBusqueda] = useState("");
+  const [tipo, setTipo] = useState<TipoDetalle>("medicamento");
+
+  const medicamentoElegido = medicamentos.find(
+    (m) => m.idMedicamento === crud.form.idMedicamento,
+  );
+
+  const nuevo = () => {
+    setTipo("medicamento");
+    crud.abrirNuevo();
+  };
+
+  const editar = (detalle: DetalleCita) => {
+    setTipo(detalle.idMedicamento ? "medicamento" : "tratamiento");
+    crud.handleModificar(detalle);
+  };
+
+  // Al cambiar de tipo se limpia lo elegido del otro tipo
+  const cambiarTipo = (nuevoTipo: TipoDetalle) => {
+    setTipo(nuevoTipo);
+    crud.setForm((prev) => ({
+      ...prev,
+      idMedicamento: 0,
+      idTratamiento: 0,
+      cantidad: 1,
+      precioAplicado: 0,
+    }));
+  };
+
+  // Al elegir el concepto se propone su precio (se puede editar)
+  const elegirMedicamento = (e: ChangeEvent<HTMLSelectElement>) => {
+    crud.handleChange(e);
+    const elegido = medicamentos.find(
+      (m) => m.idMedicamento === Number(e.target.value),
+    );
+    if (elegido) {
+      crud.setForm((prev) => ({ ...prev, precioAplicado: elegido.precio }));
     }
   };
 
-  useEffect(() => {
-    cargarDetalles();
-  }, []);
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: Number(value) }));
-  };
-
-  const obtenerMensajeError = (error: unknown): string => {
-    if (axios.isAxiosError(error)) {
-      return error.response?.data?.mensaje ?? error.message;
-    }
-    if (error instanceof Error) return error.message;
-    return "Ocurrió un error inesperado";
-  };
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    try {
-      if (modoEdicion && form.idDetalleCita !== null) {
-        await modificarDetalleCita(form.idDetalleCita, form);
-        setMensaje("Detalle actualizado correctamente");
-      } else {
-        await agregarDetalleCita(form);
-        setMensaje("Detalle creado correctamente");
-      }
-      setForm(formInicial);
-      setModoEdicion(false);
-      cargarDetalles();
-    } catch (error) {
-      setMensaje(obtenerMensajeError(error));
-    }
-  };
-
-  const handleModificar = (detalle: DetalleCita) => {
-    setForm(detalle);
-    setModoEdicion(true);
-  };
-
-  const handleAnular = async (id: number) => {
-    if (!window.confirm("¿Seguro que deseas anular este detalle?")) return;
-    try {
-      await anularDetalleCita(id);
-      setMensaje("Detalle anulado correctamente");
-      cargarDetalles();
-    } catch (error) {
-      setMensaje(obtenerMensajeError(error));
+  const elegirTratamiento = (e: ChangeEvent<HTMLSelectElement>) => {
+    crud.handleChange(e);
+    const elegido = tratamientos.find(
+      (t) => t.idTratamiento === Number(e.target.value),
+    );
+    if (elegido) {
+      crud.setForm((prev) => ({ ...prev, precioAplicado: elegido.precio }));
     }
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">
-        {modoEdicion ? "Modificar Detalle de Cita" : "Ingresar Detalle de Cita"}
-      </h2>
-      <Mensaje texto={mensaje} />
+    <div className="p-6 max-w-6xl mx-auto mb-4">
+      <EncabezadoPagina titulo="Detalles de Cita" ruta="/detalle-citas" />
 
-      <form
-        onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 bg-white p-6 rounded-lg shadow"
+      <BarraListado
+        titulo="Listado de Detalles de Cita"
+        exportar={
+          <BotonesExportar {...reporteDetalleCitas} datos={crud.items} />
+        }
+        busqueda={busqueda}
+        onBuscar={setBusqueda}
+        placeholder="Buscar por cita, medicamento o tratamiento..."
+        textoBoton="Nuevo Detalle"
+        onNuevo={nuevo}
+      />
+
+      <Mensaje texto={crud.mensaje} />
+
+      <TablaDatos
+        columnas={columnasTabla}
+        datos={filtrarPorTexto(crud.items, busqueda)}
+        claveFila={(d) => d.idDetalleCita}
+        acciones={(d) => (
+          <AccionesFila
+            onEditar={() => editar(d)}
+            onAnular={() =>
+              d.idDetalleCita !== null && crud.handleAnular(d.idDetalleCita)
+            }
+          />
+        )}
+      />
+
+      <ModalFormulario
+        abierto={crud.modalAbierto}
+        titulo={crud.modoEdicion ? "MODIFICAR DETALLE" : "NUEVO DETALLE"}
+        subtitulo={
+          crud.modoEdicion
+            ? "Edita el medicamento o tratamiento de la cita:"
+            : "Agrega un medicamento o tratamiento a una cita:"
+        }
+        icono={ClipboardList}
+        mensaje={crud.mensaje}
+        onSubmit={crud.handleSubmit}
+        onCerrar={crud.cerrarModal}
       >
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Precio Aplicado
-          </label>
+        <Campo etiqueta="Cita:" className="md:col-span-2">
+          <select
+            name="idCita"
+            value={crud.form.idCita === 0 ? "" : crud.form.idCita}
+            onChange={crud.handleChange}
+            required
+            className={CLASE_SELECT}
+          >
+            <option value="" disabled className="bg-marca-beige-claro">
+              Seleccione la cita...
+            </option>
+            {citas.map((c) => (
+              <option
+                key={c.idCita}
+                value={c.idCita ?? undefined}
+                className="bg-marca-beigeclaro2"
+              >
+                {etiquetaCita(c)}
+              </option>
+            ))}
+          </select>
+        </Campo>
+
+        <Campo etiqueta="Tipo:">
+          <select
+            value={tipo}
+            onChange={(e) => cambiarTipo(e.target.value as TipoDetalle)}
+            className={CLASE_SELECT}
+          >
+            <option value="medicamento">Medicamento</option>
+            <option value="tratamiento">Tratamiento</option>
+          </select>
+        </Campo>
+
+        {tipo === "medicamento" ? (
+          <Campo etiqueta="Medicamento:">
+            <select
+              name="idMedicamento"
+              value={crud.form.idMedicamento || ""}
+              onChange={elegirMedicamento}
+              required
+              className={CLASE_SELECT}
+            >
+              <option value="" disabled className="bg-marca-beige-claro">
+                Seleccione un medicamento...
+              </option>
+              {medicamentos.map((m) => (
+                <option
+                  key={m.idMedicamento}
+                  value={m.idMedicamento ?? undefined}
+                  className="bg-marca-beigeclaro2"
+                >
+                  {m.nombre}
+                </option>
+              ))}
+            </select>
+          </Campo>
+        ) : (
+          <Campo etiqueta="Tratamiento:">
+            <select
+              name="idTratamiento"
+              value={crud.form.idTratamiento || ""}
+              onChange={elegirTratamiento}
+              required
+              className={CLASE_SELECT}
+            >
+              <option value="" disabled className="bg-marca-beige-claro">
+                Seleccione un tratamiento...
+              </option>
+              {tratamientos.map((t) => (
+                <option
+                  key={t.idTratamiento}
+                  value={t.idTratamiento ?? undefined}
+                  className="bg-marca-beigeclaro2"
+                >
+                  {t.nombre}
+                </option>
+              ))}
+            </select>
+          </Campo>
+        )}
+
+        {tipo === "medicamento" && (
+          <Campo etiqueta="Cantidad:">
+            <input
+              type="number"
+              name="cantidad"
+              value={crud.form.cantidad ?? 1}
+              onChange={crud.handleChange}
+              min={1}
+              className={CLASE_INPUT}
+            />
+            {medicamentoElegido && (
+              <p className="mt-1 text-sm font-nunito text-gray-500">
+                Stock disponible: {medicamentoElegido.stock}
+              </p>
+            )}
+          </Campo>
+        )}
+
+        <Campo etiqueta="Precio aplicado (Q):">
           <input
             type="number"
             name="precioAplicado"
-            value={form.precioAplicado}
-            onChange={handleChange}
-            min={0}
+            value={crud.form.precioAplicado === 0 ? "" : crud.form.precioAplicado}
+            onChange={crud.handleChange}
+            min={0.01}
             step="0.01"
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            required
+            placeholder="0.00"
+            className={CLASE_INPUT}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            ID Cita
-          </label>
-          <input
-            type="number"
-            name="idCita"
-            value={form.idCita}
-            onChange={handleChange}
-            min={1}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            ID Medicamento
-          </label>
-          <input
-            type="number"
-            name="idMedicamento"
-            value={form.idMedicamento}
-            onChange={handleChange}
-            min={0}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            ID Tratamiento
-          </label>
-          <input
-            type="number"
-            name="idTratamiento"
-            value={form.idTratamiento}
-            onChange={handleChange}
-            min={0}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
-        <button
-          type="submit"
-          className="col-span-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
-        >
-          Guardar
-        </button>
-      </form>
-
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">
-        Listado de Detalles de Cita
-      </h2>
-      <table className="w-full border-collapse bg-white rounded-lg shadow overflow-hidden">
-        <thead>
-          <tr>
-            <th className="bg-gray-100 text-left px-4 py-2 text-sm font-semibold text-gray-600">
-              Precio
-            </th>
-            <th className="bg-gray-100 text-left px-4 py-2 text-sm font-semibold text-gray-600">
-              ID Cita
-            </th>
-            <th className="bg-gray-100 text-left px-4 py-2 text-sm font-semibold text-gray-600">
-              ID Medicamento
-            </th>
-            <th className="bg-gray-100 text-left px-4 py-2 text-sm font-semibold text-gray-600">
-              ID Tratamiento
-            </th>
-            <th className="bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600">
-              Acciones
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {detalles.map((d) => (
-            <tr key={d.idDetalleCita}>
-              <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {d.precioAplicado}
-              </td>
-              <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {d.descripcionCita ?? "—"}
-              </td>
-              <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {d.nombreMedicamento ?? "—"}
-              </td>
-              <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {d.nombreTratamiento ?? "—"}
-              </td>
-              <td className="px-4 py-2 border-t text-sm text-center">
-                <td className="px-4 py-2 border-t text-sm text-center">
-                  <AccionesFila
-                    onEditar={() => handleModificar(d)}
-                    onAnular={() => d.idDetalleCita !== null && handleAnular(d.idDetalleCita)}
-                  />
-                </td>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        </Campo>
+      </ModalFormulario>
     </div>
   );
 }

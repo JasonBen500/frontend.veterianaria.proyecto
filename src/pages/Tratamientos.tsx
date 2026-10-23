@@ -1,269 +1,156 @@
-//---IMPORTACIONES--//
-import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
-import { Link } from "react-router-dom";
-import axios from "axios";
-import TablaDatos, { type ColumnaTabla } from "../components/TablaDatos";
-import logazul from "../assets/images/LogoAzul.png";
+import { useState } from "react";
+import { Syringe } from "lucide-react";
 import {
   listarTratamientosActivos,
   agregarTratamiento,
   modificarTratamiento,
   anularTratamiento,
 } from "../services/tratamientoService";
-import { HomeIcon, ChevronRight, Plus, Syringe } from "lucide-react";
 import type { Tratamiento } from "../types/tratamiento";
 import Mensaje from "../components/Mensaje";
 import AccionesFila from "../components/AccionesFilas";
-import Modal from "../components/Modal";
 import BotonesExportar from "../components/BotonesExportar";
-import { reporteTratamientos } from "../utiils/reportes"; // Asegúrate de tener esto configurado
-//-------------------------------------------------------------//
+import EncabezadoPagina from "../components/EncabezadoPagina";
+import BarraListado from "../components/BarraListado";
+import ModalFormulario from "../components/formulario/ModalFormulario";
+import Campo from "../components/formulario/Campo";
+import { CLASE_INPUT } from "../components/formulario/estilosFormulario";
+import { useCrud, type ConfigCrud } from "../hooks/useCrud";
+import { reporteTratamientos } from "../utils/reportes";
+import { filtrarPorTexto } from "../utils/busqueda";
 
-//--INFO TRATAMIENTOS--//
-const formInicial: Tratamiento = {
-  idTratamiento: null,
-  nombre: "",
-  precio: 0,
-  estado: true,
+const configTratamientos: ConfigCrud<Tratamiento> = {
+  listar: listarTratamientosActivos,
+  agregar: agregarTratamiento,
+  modificar: modificarTratamiento,
+  anular: anularTratamiento,
+  obtenerId: (t) => t.idTratamiento,
+  camposNumericos: ["precio"],
+  vacio: {
+    idTratamiento: null,
+    nombre: "",
+    precio: 0,
+    estado: true,
+  },
+  textos: {
+    creado: "Tratamiento creado correctamente",
+    actualizado: "Tratamiento actualizado correctamente",
+    anulado: "Tratamiento anulado correctamente",
+    confirmarAnular: "¿Seguro que deseas anular este tratamiento?",
+    errorListar: "Error al listar tratamientos",
+  },
 };
 
 function TratamientosPage() {
-  const [tratamientos, setTratamientos] = useState<Tratamiento[]>([]);
-  const [form, setForm] = useState<Tratamiento>(formInicial);
-  const [modoEdicion, setModoEdicion] = useState(false);
-  const [mensaje, setMensaje] = useState("");
-  const [modalAbierto, setModalAbierto] = useState(false);
+  const crud = useCrud(configTratamientos);
+  const [busqueda, setBusqueda] = useState("");
 
-  const cargarTratamientos = async () => {
-    try {
-      const respuesta = await listarTratamientosActivos();
-      setTratamientos(respuesta.data);
-    } catch (error) {
-      console.error("Error al listar tratamientos", error);
-    }
-  };
-
-  useEffect(() => {
-    cargarTratamientos();
-  }, []);
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: name === "precio" ? Number(value) : value,
-    }));
-  };
-  //-----------------------------------------------//
-
-  //---VENTANA EMERGENTE----//
-  const abrirNuevo = () => {
-    setForm(formInicial);
-    setModoEdicion(false);
-    setMensaje("");
-    setModalAbierto(true);
-  };
-
-  const cerrarModal = () => {
-    setModalAbierto(false);
-    setForm(formInicial);
-    setModoEdicion(false);
-    setMensaje("");
-  };
-  //---------------------//
-
-  //------POR SI SALE MAL-------/
-  const obtenerMensajeError = (error: unknown): string => {
-    if (axios.isAxiosError(error)) {
-      return error.response?.data?.mensaje ?? error.message;
-    }
-    if (error instanceof Error) return error.message;
-    return "Ocurrió un error inesperado";
-  };
-  //----------------------------------------//
-
-  //----------------ACTUALIZAR-------------------//
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    try {
-      if (modoEdicion && form.idTratamiento !== null) {
-        await modificarTratamiento(form.idTratamiento, form);
-        setMensaje("Tratamiento actualizado correctamente");
-      } else {
-        await agregarTratamiento(form);
-        setMensaje("Tratamiento creado correctamente");
-      }
-      setModalAbierto(false);
-      setForm(formInicial);
-      setModoEdicion(false);
-      cargarTratamientos();
-    } catch (error) {
-      setMensaje(obtenerMensajeError(error));
-    }
-  };
-
-  const handleModificar = (tratamiento: Tratamiento) => {
-    setForm(tratamiento);
-    setModoEdicion(true);
-    setMensaje("");
-    setModalAbierto(true);
-  };
-  //----------------------------------------------//
-
-  //------------------ANULAR---------------------//
-  const handleAnular = async (id: number) => {
-    if (!window.confirm("¿Seguro que deseas anular este tratamiento?")) return;
-    try {
-      await anularTratamiento(id);
-      setMensaje("Tratamiento anulado correctamente");
-      cargarTratamientos();
-    } catch (error) {
-      setMensaje(obtenerMensajeError(error));
-    }
-  };
-  //--------------------------------------//
-
-  //------------------LLAMAR PARA EL ORDEN DE LA TABLA----------------//
-  const columnasTabla: ColumnaTabla<Tratamiento>[] = [
-    { encabezado: "Nombre", valor: (t) => t.nombre },
-    { encabezado: "Precio", valor: (t) => `$${t.precio.toFixed(2)}` },
-  ];
-  //--------------------------------------------------------------//
+  const tratamientosFiltrados = filtrarPorTexto(crud.items, busqueda);
 
   return (
-    <div className="p-6 max-w-5xl mx-auto mb-4">
-      {/* CABECERA */}
-      <div className="flex items-center justify-between min-h-8 rounded-2xl border border-marca-oscuro/10 bg-marca-beigeclaro2 p-6 shadow-sm">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-nunito font-extrabold text-marca-oscuro md:text-4xl">
-            Tratamientos
-          </h1>
+    <div className="p-6 max-w-6xl mx-auto mb-4">
+      <EncabezadoPagina
+        titulo="Tratamientos"
+        ruta="/tratamientos"
+        padres={[{ texto: "Administración", ruta: "/administracion" }]}
+      />
 
-          <div className="flex items-center gap-1 md:gap-2">
-            <Link
-              to="/"
-              className="flex items-center gap-1.5 text-sm font-nunito font-bold text-marca-oscuro/70 hover:text-marca-oscuro transition-colors"
-            >
-              <HomeIcon size={15} />
-            </Link>
+      <BarraListado
+        titulo="Lista"
+        exportar={
+          <BotonesExportar {...reporteTratamientos} datos={crud.items} />
+        }
+        busqueda={busqueda}
+        onBuscar={setBusqueda}
+        placeholder="Buscar por nombre o precio..."
+        textoBoton="Nuevo Tratamiento"
+        onNuevo={crud.abrirNuevo}
+      />
 
-            <Link
-              to="/administracion"
-              className="flex items-center gap-1 text-sm font-nunito font-bold text-marca-oscuro transition-colors"
-            >
-              <ChevronRight size={15} className="text-marca-oscuro/50" />
-              Administración
-            </Link>
+      <Mensaje texto={crud.mensaje} />
 
-            <Link
-              to="/tratamientos"
-              className="flex items-center gap-1 text-sm font-nunito font-bold text-marca-oscuro transition-colors"
-            >
-              <ChevronRight size={15} className="text-marca-oscuro/50" />
-              Tratamientos
-            </Link>
-          </div>
-        </div>
-
-        <img
-          src={logazul}
-          alt="Logo de la clínica"
-          className="w-20"
-        />
-      </div>
-
-      {/* BOTÓN AGREGAR */}
-      <section className="mt-6 mb-4 flex justify-end">
-        <button
-          type="button"
-          onClick={abrirNuevo}
-          className="inline-flex items-center gap-2 rounded-full bg-marca-naranja px-5 py-2 font-nunito font-bold text-marca-oscuro transition hover:opacity-90"
-        >
-          <Plus size={20} />
-          Nuevo Tratamiento
-        </button>
-      </section>
-
-      {/* MODAL DE FORMULARIO */}
-      <Modal
-        abierto={modalAbierto}
-        titulo={modoEdicion ? "MODIFICAR TRATAMIENTO" : "NUEVO TRATAMIENTO"}
-        subtitulo={modoEdicion ? "Edita la información del tratamiento:" : "Ingresa los datos del nuevo tratamiento:"}
+      <ModalFormulario
+        abierto={crud.modalAbierto}
+        titulo={crud.modoEdicion ? "MODIFICAR TRATAMIENTO" : "NUEVO TRATAMIENTO"}
+        subtitulo={
+          crud.modoEdicion
+            ? "Edita la información del tratamiento:"
+            : "Ingresa los datos del nuevo tratamiento:"
+        }
         icono={Syringe}
-        onCerrar={cerrarModal}
+        mensaje={crud.mensaje}
+        claseGrid="grid-cols-1 md:grid-cols-3"
+        onSubmit={crud.handleSubmit}
+        onCerrar={crud.cerrarModal}
       >
-        <Mensaje texto={mensaje} />
-        <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block font-nunito text-lg font-semibold text-gray-700 mb-2">
-              Nombre:
-            </label>
-            <input
-              name="nombre"
-              value={form.nombre}
-              onChange={handleChange}
-              placeholder="Ej. Limpieza dental"
-              className="w-full border border-cafenigga rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-          <div>
-            <label className="block font-nunito text-lg font-semibold text-gray-700 mb-2">
-              Precio:
-            </label>
+        <Campo etiqueta="Nombre:" className="md:col-span-2">
+          <input
+            name="nombre"
+            value={crud.form.nombre}
+            onChange={crud.handleChange}
+            placeholder="Ej. Limpieza dental"
+            className={CLASE_INPUT}
+          />
+        </Campo>
+        <Campo etiqueta="Precio:">
+          <div className="relative w-full flex items-center">
+            <span className="absolute left-3 z-10 text-gray-500 font-nunito font-bold select-none pointer-events-none">
+              Q
+            </span>
             <input
               type="number"
               name="precio"
-              value={form.precio}
-              onChange={handleChange}
+              value={crud.form.precio === 0 ? "" : crud.form.precio}
+              onChange={crud.handleChange}
               min={0}
               step="0.01"
               placeholder="0.00"
-              className="w-full border border-cafenigga rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className={`${CLASE_INPUT} pl-8 bg-transparent`}
             />
           </div>
+        </Campo>
+      </ModalFormulario>
 
-          <div className="mt-8 col-span-full flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={cerrarModal}
-              className="rounded-full border border-marca-oscuro px-6 py-2 font-nunito font-bold text-marca-oscuro transition hover:bg-marca-oscuro hover:text-white"
+      {tratamientosFiltrados.length === 0 ? (
+        <p className="font-nunito text-sm font-semibold text-marca-oscuro/60 text-center mt-8">
+          No hay tratamientos para mostrar.
+        </p>
+      ) : (
+        <div className="mt-6 flex flex-col gap-4">
+          {tratamientosFiltrados.map((t) => (
+            <div
+              key={t.idTratamiento}
+              className="bg-white border border-gray-200 rounded-2xl p-5 shadow-lg shadow-marca-cafenigga/15 hover:shadow-xl transition-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
             >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="rounded-full bg-marca-naranja px-6 py-2 font-nunito font-bold text-marca-oscuro transition hover:opacity-90"
-            >
-              Guardar
-            </button>
-          </div>
-        </form>
-      </Modal>
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                <div className="w-14 h-14 rounded-full bg-marca-beigeclaro2 border border-marca-oscuro/20 flex items-center justify-center text-marca-oscuro shrink-0 shadow-inner">
+                  <Syringe size={28} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-nunito font-extrabold text-lg text-gray-800 truncate">
+                    {t.nombre}
+                  </h3>
+                  <p className="text-base font-nunito font-bold text-marca-verdehoja mt-0.5">
+                    Q {t.precio.toFixed(2)}
+                  </p>
+                </div>
+              </div>
 
-      {/* CONTENEDOR TÍTULO DE TABLA Y BOTONES DE EXPORTAR */}
-      <div className="bg-marca-beigeclaro2 p-4 rounded-xl shadow-sm border border-gray-200 flex gap-4 mt-6">
-        <div className="mb-2 flex w-full flex-wrap items-center justify-between gap-80">
-          <h2 className="text-center text-2xl font-nunito font-extrabold text-gray-800">
-            Listado de Tratamientos
-          </h2>
-          <BotonesExportar {...reporteTratamientos} datos={tratamientos} />
+              <div className="w-full sm:w-px h-px sm:h-12 bg-marca-oscuro/15 my-1 sm:my-0" />
+
+              <div className="flex items-center justify-end w-full sm:w-auto gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                <AccionesFila
+                  onEditar={() => crud.handleModificar(t)}
+                  onAnular={() =>
+                    t.idTratamiento !== null &&
+                    crud.handleAnular(t.idTratamiento)
+                  }
+                />
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
-
-      <Mensaje texto={mensaje} />
-
-      {/* TABLA REUTILIZABLE */}
-      <TablaDatos
-        columnas={columnasTabla}
-        datos={tratamientos}
-        claveFila={(t) => t.idTratamiento}
-        acciones={(t) => (
-          <AccionesFila
-            onEditar={() => handleModificar(t)}
-            onAnular={() => t.idTratamiento !== null && handleAnular(t.idTratamiento)}
-          />
-        )}
-      />
+      )}
     </div>
   );
 }

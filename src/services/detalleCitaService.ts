@@ -13,3 +13,4 @@ export const anularDetalleCita = (id: number) =>
   api.patch(`/detalle-citas/${id}/anular`);
 export const listarDetallesTodos = () =>
   api.get<DetalleCita[]>("/detalle-citas");
+export const obtenerUnDetalleCita = (id: number) => api.get<DetalleCita>(`/detalle-citas/${id}`);

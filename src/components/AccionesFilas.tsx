@@ -1,22 +1,55 @@
-import { Pencil, Ban, Trash2 } from "lucide-react";
+import { Pencil, Ban, Trash2, Eye, FileText } from "lucide-react";
 
 interface Props {
+  onVerDetalles?: () => void;
   onEditar: () => void;
   onAnular: () => void;
   onEliminar?: () => void;
+  onVerInforme?: () => void;
 }
 
-const base = "rounded-lg p-2 transition-colors";
+const base =
+  "flex h-9 w-9 items-center justify-center rounded-full transition hover:-translate-y-0.5";
 
-function AccionesFila({ onEditar, onAnular, onEliminar }: Props) {
+function AccionesFila({
+  onVerDetalles,
+  onVerInforme,
+  onEditar,
+  onAnular,
+  onEliminar,
+}: Props) {
   return (
-    <div className="flex items-center justify-center gap-1">
+    <div className="flex items-center justify-center gap-2">
+      {onVerDetalles && (
+        <button
+          type="button"
+          onClick={onVerDetalles}
+          title="Ver Detalles"
+          aria-label="Ver Detalles"
+          className={`${base} bg-marca-azulmarino/10 text-marca-azulmarino hover:bg-marca-azulmarino hover:text-white`}
+        >
+          <Eye size={18} />
+        </button>
+      )}
+
+      {onVerInforme && (
+        <button
+          type="button"
+          onClick={onVerInforme}
+          title="Ver Informe"
+          aria-label="Ver Informe"
+          className={`${base} bg-marca-verde/30 text-marca-oscuro hover:bg-marca-verde`}
+        >
+          <FileText size={18} />
+        </button>
+      )}
+
       <button
         type="button"
         onClick={onEditar}
         title="Editar"
         aria-label="Editar"
-        className={`${base} text-marca-oscuro/70 hover:bg-marca-oscuro/10 hover:text-marca-oscuro`}
+        className={`${base} bg-marca-oscuro/10 text-marca-oscuro hover:bg-marca-oscuro hover:text-white`}
       >
         <Pencil size={18} />
       </button>
@@ -26,7 +59,7 @@ function AccionesFila({ onEditar, onAnular, onEliminar }: Props) {
         onClick={onAnular}
         title="Anular"
         aria-label="Anular"
-        className={`${base} text-marca-naranja hover:bg-marca-naranja/20`}
+        className={`${base} bg-marca-naranja/30 text-marca-oscuro hover:bg-marca-naranja`}
       >
         <Ban size={18} />
       </button>
@@ -37,7 +70,7 @@ function AccionesFila({ onEditar, onAnular, onEliminar }: Props) {
           onClick={onEliminar}
           title="Eliminar"
           aria-label="Eliminar"
-          className={`${base} text-marca-vino hover:bg-marca-vino/15`}
+          className={`${base} bg-marca-vino/10 text-marca-vino hover:bg-marca-vino hover:text-white`}
         >
           <Trash2 size={18} />
         </button>

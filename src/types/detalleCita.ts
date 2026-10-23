@@ -8,4 +8,5 @@ export interface DetalleCita {
   descripcionCita?: string;
   nombreMedicamento?: string;
   nombreTratamiento?: string;
+  cantidad?: number;
 }

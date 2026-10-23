@@ -2,6 +2,9 @@ import { useState, useEffect, type ChangeEvent } from "react";
 import { buscarDuenos } from "../../services/duenoService";
 import { useDebounce } from "../../hooks/useDebounce";
 import type { Dueno } from "../../types/dueno";
+import { Search, ArrowRight, UserCheck } from "lucide-react";
+import Campo from "../formulario/Campo";
+import { CLASE_INPUT } from "../formulario/estilosFormulario";
 
 const duenoVacio: Dueno = {
   idDueno: null,
@@ -63,98 +66,89 @@ function PasoDueno({ duenoInicial, onSiguiente }: Props) {
     form.telefono.trim() !== "";
 
   return (
-    <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow">
-      <h2 className="text-xl font-bold text-gray-800 mb-1">Paso 1 de 3</h2>
-      <p className="text-sm text-gray-500 mb-4">Datos del dueño</p>
-
-      <div className="relative mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Buscar dueño existente
-        </label>
+    <div className="space-y-5">
+      <Campo
+        etiqueta="Buscar dueño existente"
+        icono={Search}
+        className="relative"
+      >
         <input
           value={busqueda}
           onChange={handleBusquedaChange}
           placeholder="Escribe un nombre o apellido..."
-          className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className={CLASE_INPUT}
         />
         {sugerencias.length > 0 && (
-          <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded mt-1 shadow-lg max-h-48 overflow-y-auto">
+          <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-2xl border border-marca-oscuro/10 bg-white shadow-lg shadow-marca-cafenigga/15">
             {sugerencias.map((d) => (
               <li
                 key={d.idDueno}
                 onClick={() => handleSeleccionarSugerencia(d)}
-                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+                className="flex cursor-pointer items-center gap-2 px-4 py-2 font-nunito text-sm text-marca-oscuro hover:bg-marca-verde/20"
               >
-                <span className="font-medium">
+                <span className="font-extrabold">
                   {d.nombre} {d.apellido}
-                </span>{" "}
-                <span className="text-gray-500">— {d.telefono}</span>
+                </span>
+                <span className="text-marca-oscuro/60">— {d.telefono}</span>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </Campo>
 
       {!esNuevo && (
-        <p className="mb-4 p-3 rounded border text-sm bg-green-50 text-green-700 border-green-200">
+        <p className="flex items-start gap-2 rounded-2xl bg-marca-verde/20 px-4 py-3 font-nunito text-sm font-semibold text-marca-oscuro">
+          <UserCheck size={18} className="mt-0.5 shrink-0" />
           Dueño existente seleccionado. Puedes ajustar sus datos si es necesario.
         </p>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nombre *
-          </label>
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <Campo etiqueta="Nombre *">
           <input
             name="nombre"
             value={form.nombre}
             onChange={handleFormChange}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className={CLASE_INPUT}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Apellido *
-          </label>
+        </Campo>
+        <Campo etiqueta="Apellido *">
           <input
             name="apellido"
             value={form.apellido}
             onChange={handleFormChange}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className={CLASE_INPUT}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Teléfono *
-          </label>
+        </Campo>
+        <Campo etiqueta="Teléfono *">
           <input
             name="telefono"
             value={form.telefono}
             onChange={handleFormChange}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className={CLASE_INPUT}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Dirección
-          </label>
+        </Campo>
+        <Campo etiqueta="Dirección">
           <input
             name="direccion"
             value={form.direccion}
             onChange={handleFormChange}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className={CLASE_INPUT}
           />
-        </div>
+        </Campo>
       </div>
 
-      <button
-        disabled={!puedeAvanzar}
-        onClick={() => onSiguiente(form, esNuevo)}
-        className="mt-6 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
-      >
-        Siguiente
-      </button>
+      <div className="flex justify-end border-t border-marca-oscuro/10 pt-5">
+        <button
+          type="button"
+          disabled={!puedeAvanzar}
+          onClick={() => onSiguiente(form, esNuevo)}
+          className="inline-flex items-center gap-2 rounded-full bg-marca-naranja px-6 py-2 font-nunito font-bold text-marca-oscuro shadow-md transition hover:-translate-y-0.5 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-marca-oscuro/10 disabled:text-marca-oscuro/40 disabled:shadow-none disabled:hover:translate-y-0"
+        >
+          Siguiente
+          <ArrowRight size={18} />
+        </button>
+      </div>
     </div>
   );
 }

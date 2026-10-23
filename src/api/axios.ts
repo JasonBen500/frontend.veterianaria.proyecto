@@ -13,4 +13,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (respuesta) => respuesta,
+  (error) => {
+    const estado = error.response?.status;
+    const esLogin = error.config?.url?.includes("/usuarios/login");
+
+    // 403 = sin permiso para esa acción: no se cierra la sesión
+    if (estado === 401 && !esLogin) {
+      localStorage.removeItem("usuario");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  },
+);
+
 export default api;

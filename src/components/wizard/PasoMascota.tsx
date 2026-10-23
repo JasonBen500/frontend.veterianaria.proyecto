@@ -1,6 +1,9 @@
 import { useState, useEffect, type ChangeEvent } from "react";
 import { listarMascotasPorDueno } from "../../services/mascotaService";
 import type { Mascota } from "../../types/mascota";
+import { ArrowLeft, ArrowRight, PawPrint } from "lucide-react";
+import Campo from "../formulario/Campo";
+import { CLASE_INPUT } from "../formulario/estilosFormulario";
 
 interface Props {
   idDueno: number;
@@ -50,13 +53,10 @@ function PasoMascota({
   const puedeAvanzar = form.nombre.trim() !== "" && form.especie.trim() !== "";
 
   return (
-    <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow">
-      <h2 className="text-xl font-bold text-gray-800 mb-1">Paso 2 de 3</h2>
-      <p className="text-sm text-gray-500 mb-4">Datos de la mascota</p>
-
+    <div className="space-y-5">
       {mascotasDelDueno.length > 0 && esNueva && (
-        <div className="mb-6">
-          <p className="text-sm font-medium text-gray-700 mb-2">
+        <div className="rounded-2xl bg-marca-verde/20 px-4 py-3">
+          <p className="mb-2 font-nunito text-sm font-extrabold text-marca-oscuro">
             Este dueño ya tiene mascotas registradas:
           </p>
           <div className="flex flex-wrap gap-2">
@@ -65,71 +65,63 @@ function PasoMascota({
                 key={m.idMascota}
                 type="button"
                 onClick={() => handleSeleccionarMascota(m)}
-                className="px-3 py-1 border border-blue-300 text-blue-700 rounded-full text-sm hover:bg-blue-50"
+                className="inline-flex items-center gap-1.5 rounded-full border border-marca-oscuro/20 bg-white px-3 py-1 font-nunito text-sm font-bold text-marca-oscuro shadow-sm transition hover:bg-marca-naranja/30"
               >
+                <PawPrint size={14} />
                 {m.nombre} ({m.especie})
               </button>
             ))}
           </div>
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="mt-2 font-nunito text-xs font-semibold text-marca-oscuro/60">
             O sigue llenando el formulario para registrar una mascota nueva.
           </p>
         </div>
       )}
 
       {!esNueva && (
-        <div className="mb-4 p-3 rounded border text-sm bg-green-50 text-green-700 border-green-200 flex justify-between items-center">
-          <span>Mascota existente seleccionada.</span>
+        <div className="flex items-center justify-between gap-3 rounded-2xl bg-marca-verde/20 px-4 py-3 font-nunito text-sm font-semibold text-marca-oscuro">
+          <span className="flex items-center gap-2">
+            <PawPrint size={18} />
+            Mascota existente seleccionada.
+          </span>
           <button
             type="button"
             onClick={handleEmpezarNueva}
-            className="text-green-800 underline text-xs"
+            className="text-xs font-extrabold underline"
           >
             Registrar una diferente
           </button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nombre *
-          </label>
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <Campo etiqueta="Nombre *">
           <input
             name="nombre"
             value={form.nombre}
             onChange={handleChange}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className={CLASE_INPUT}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Especie *
-          </label>
+        </Campo>
+        <Campo etiqueta="Especie *">
           <input
             name="especie"
             value={form.especie}
             onChange={handleChange}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className={CLASE_INPUT}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Edad
-          </label>
+        </Campo>
+        <Campo etiqueta="Edad">
           <input
             type="number"
             name="edad"
             value={form.edad}
             onChange={handleChange}
             min={0}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className={CLASE_INPUT}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Peso (kg)
-          </label>
+        </Campo>
+        <Campo etiqueta="Peso (kg)">
           <input
             type="number"
             name="peso"
@@ -137,24 +129,28 @@ function PasoMascota({
             onChange={handleChange}
             min={0}
             step="0.01"
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className={CLASE_INPUT}
           />
-        </div>
+        </Campo>
       </div>
 
-      <div className="flex gap-3 mt-6">
+      <div className="flex justify-between gap-3 border-t border-marca-oscuro/10 pt-5">
         <button
+          type="button"
           onClick={onAtras}
-          className="flex-1 border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-50 transition"
+          className="inline-flex items-center gap-2 rounded-full border-2 border-marca-oscuro px-6 py-2 font-nunito font-bold text-marca-oscuro transition hover:bg-marca-oscuro hover:text-white"
         >
+          <ArrowLeft size={18} />
           Atrás
         </button>
         <button
+          type="button"
           disabled={!puedeAvanzar}
           onClick={() => onSiguiente(form, esNueva)}
-          className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 rounded-full bg-marca-naranja px-6 py-2 font-nunito font-bold text-marca-oscuro shadow-md transition hover:-translate-y-0.5 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-marca-oscuro/10 disabled:text-marca-oscuro/40 disabled:shadow-none disabled:hover:translate-y-0"
         >
           Siguiente
+          <ArrowRight size={18} />
         </button>
       </div>
     </div>

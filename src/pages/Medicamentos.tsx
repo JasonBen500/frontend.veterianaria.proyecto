@@ -1,6 +1,5 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
 import {
   listarMedicamentosActivos,
   agregarMedicamento,
@@ -10,22 +9,19 @@ import {
   ajustarStockMedicamento,
 } from "../services/medicamentosService";
 
-import {
-  HomeIcon,
-  ChevronRight,
-  Plus,
-  ImagePlus,
-  Pill,
-} from "lucide-react";
-
+import { ImagePlus, Pill, Package } from "lucide-react";
 import type { Medicamentos } from "../types/medicamentos";
 import Mensaje from "../components/Mensaje";
-import { reporteMedicamentos } from "../utiils/reportes";
+import { reporteMedicamentos } from "../utils/reportes";
 import BotonesExportar from "../components/BotonesExportar";
-import logazul from "../assets/images/LogoAzul.png";
-import Modal from "../components/Modal";
 import TarjetaMedicamento from "../components/medicamentos/TarjetaMedicamento";
-import { archivoADataUrl } from "../utiils/imagenes";
+import { archivoADataUrl } from "../utils/imagenes";
+import { filtrarPorTexto } from "../utils/busqueda";
+import EncabezadoPagina from "../components/EncabezadoPagina";
+import BarraListado from "../components/BarraListado";
+import ModalFormulario from "../components/formulario/ModalFormulario";
+import Campo from "../components/formulario/Campo";
+import { CLASE_INPUT } from "../components/formulario/estilosFormulario";
 
 const formInicial: Medicamentos = {
   idMedicamento: null,
@@ -41,6 +37,7 @@ function MedicamentosPage() {
   const [form, setForm] = useState<Medicamentos>(formInicial);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [mensaje, setMensaje] = useState("");
+  const [busqueda, setBusqueda] = useState("");
 
   const cargarMedicamentos = async () => {
     try {
@@ -171,181 +168,136 @@ function MedicamentosPage() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between min-h-8 rounded-2xl border border-marca-oscuro/10 bg-marca-beigeclaro2 p-6 shadow-sm">
+    <div className="p-6 max-w-6xl mx-auto mb-4">
+      {/* HEADER SUPERIOR */}
+      <EncabezadoPagina
+        titulo="Inventario de Medicamentos"
+        ruta="/medicamentos"
+        icono={Pill}
+      />
 
-        <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-nunito font-extrabold text-marca-oscuro md:text-4xl">
-            Inventario de Medicamentos
-          </h1>
-          <div className="flex items-center gap-1 md:gap-2">
-            <Link
-              to="/"
-              className="flex items-center gap-1.5 text-sm font-nunito font-bold text-marca-oscuro/70 hover:text-marca-oscuro transition-colors"
-            >
-              <HomeIcon size={15} />
-            </Link>
-            <Link
-              to="/medicamentos"
-              className="flex items-center gap-1 text-sm font-nunito font-bold text-marca-oscuro transition-colors"
-            >
-              <ChevronRight size={15} className="text-marca-oscuro/50" />
-              Medicamentos
-            </Link>
-          </div>
-        </div>
-        <img
-          src={logazul}
-          alt="Logo de la clínica"
-          className="w-20"
-        />
-      </div>
-
-      <Modal
+      {/* MODAL DEL FORMULARIO DE MEDICAMENTOS */}
+      {/* MODAL DEL FORMULARIO DE MEDICAMENTOS */}
+      <ModalFormulario
         abierto={modalAbierto}
         titulo={modoEdicion ? "MODIFICAR MEDICAMENTO" : "NUEVO MEDICAMENTO"}
-        subtitulo={modoEdicion ? "Edita la información del medicamento:" : "Ingresa los datos del nuevo medicamento:"}
+        subtitulo={
+          modoEdicion
+            ? "Edita la información del medicamento:"
+            : "Ingresa los datos del nuevo medicamento:"
+        }
         icono={Pill}
+        mensaje={mensaje}
+        onSubmit={handleSubmit}
         onCerrar={cerrarModal}
       >
-        <Mensaje texto={mensaje} />
-        <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block font-nunito text-lg font-semibold text-gray-700 mb-2">
-              Nombre:
-            </label>
-            <input
-              name="nombre"
-              value={form.nombre}
-              onChange={handleChange}
-              placeholder="Ej. Paracetamol"
-              className="w-full border border-cafenigga rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-          <div>
-            <label className="block font-nunito text-lg font-semibold text-gray-700 mb-2">
-              Descripción:
-            </label>
-            <input
-              name="descripcion"
-              value={form.descripcion}
-              onChange={handleChange}
-              placeholder="Ej. Analgésico y antipirético"
-              className="w-full border border-cafenigga rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-          <div>
-            <label className="block font-nunito text-lg font-semibold text-gray-700 mb-2">
-              Precio:
-            </label>
-            <input
-              type="number"
-              name="precio"
-              value={form.precio}
-              onChange={handleChange}
-              min={0}
-              step="0.01"
-              placeholder="0.00"
-              className="w-full border border-cafenigga rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-          <div>
-            <label className="block font-nunito text-lg font-semibold text-gray-700 mb-2">
-              Stock:
-            </label>
-            <input
-              type="number"
-              name="stock"
-              value={form.stock}
-              onChange={handleChange}
-              min={0}
-              placeholder="Ej. 50"
-              className="w-full border border-cafenigga rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
+        <Campo etiqueta="Nombre:" icono={Pill}>
+          <input
+            name="nombre"
+            value={form.nombre}
+            onChange={handleChange}
+            placeholder="Ej. Paracetamol"
+            className={CLASE_INPUT}
+          />
+        </Campo>
+        <Campo etiqueta="Descripción:">
+          <input
+            name="descripcion"
+            value={form.descripcion}
+            onChange={handleChange}
+            placeholder="Ej. Analgésico y antipirético"
+            className={CLASE_INPUT}
+          />
+        </Campo>
+        <Campo etiqueta="Precio:">
+          <input
+            type="number"
+            name="precio"
+            value={form.precio}
+            onChange={handleChange}
+            min={0}
+            step="0.01"
+            placeholder="0.00"
+            className={CLASE_INPUT}
+          />
+        </Campo>
+        <Campo etiqueta="Stock:" icono={Package}>
+          <input
+            type="number"
+            name="stock"
+            value={form.stock}
+            onChange={handleChange}
+            min={0}
+            placeholder="Ej. 50"
+            className={CLASE_INPUT}
+          />
+        </Campo>
 
-          {/* Sección de Imagen dentro del modal */}
-          <div className="col-span-full">
-            <label className="mb-2 block font-nunito text-lg font-semibold text-gray-700">
-              Imagen de referencia:
-            </label>
-            <div className="flex items-center gap-4">
-              {form.imagen ? (
-                <img
-                  src={form.imagen}
-                  alt="Vista previa"
-                  className="h-20 w-20 rounded-lg border border-marca-oscuro/10 object-cover"
-                />
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-marca-naranja/25 text-marca-oscuro/40">
-                  <ImagePlus size={28} />
-                </div>
-              )}
-
-              <div className="flex flex-col items-start gap-2">
-                <label className="cursor-pointer rounded-full border border-marca-oscuro px-4 py-1.5 font-nunito text-sm font-bold text-marca-oscuro transition-colors hover:bg-marca-oscuro hover:text-white">
-                  {form.imagen ? "Cambiar imagen" : "Elegir imagen"}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImagen}
-                    className="hidden"
-                  />
-                </label>
-
-                {form.imagen && (
-                  <button
-                    type="button"
-                    onClick={() => setForm((prev) => ({ ...prev, imagen: "" }))}
-                    className="font-nunito text-sm font-semibold text-marca-vino hover:underline"
-                  >
-                    Quitar imagen
-                  </button>
-                )}
+        {/* Sección de imagen */}
+        <Campo
+          etiqueta="Imagen de referencia:"
+          icono={ImagePlus}
+          className="col-span-full"
+        >
+          <div className="flex items-center gap-4">
+            {form.imagen ? (
+              <img
+                src={form.imagen}
+                alt="Vista previa"
+                className="h-24 w-24 rounded-2xl border border-marca-oscuro/10 object-cover shadow-md"
+              />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-marca-naranja/25 text-marca-oscuro/40">
+                <ImagePlus size={32} />
               </div>
+            )}
+
+            <div className="flex flex-col items-start gap-2">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border-2 border-marca-oscuro px-5 py-1.5 font-nunito text-sm font-bold text-marca-oscuro transition hover:bg-marca-oscuro hover:text-white">
+                <ImagePlus size={16} />
+                {form.imagen ? "Cambiar imagen" : "Elegir imagen"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImagen}
+                  className="hidden"
+                />
+              </label>
+
+              {form.imagen && (
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, imagen: "" }))}
+                  className="font-nunito text-sm font-semibold text-marca-vino hover:underline"
+                >
+                  Quitar imagen
+                </button>
+              )}
             </div>
           </div>
+        </Campo>
+      </ModalFormulario>
 
-          <div className="mt-8 col-span-full flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={cerrarModal}
-              className="rounded-full border border-marca-oscuro px-6 py-2 font-nunito font-bold text-marca-oscuro transition hover:bg-marca-oscuro hover:text-white"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="rounded-full bg-marca-naranja px-6 py-2 font-nunito font-bold text-marca-oscuro transition hover:opacity-90"
-            >
-              Guardar
-            </button>
-          </div>
-        </form>
-      </Modal>
+      <BarraListado
+        titulo="Medicamentos"
+        exportar={<BotonesExportar {...reporteMedicamentos} datos={medicamentos} />}
+        busqueda={busqueda}
+        onBuscar={setBusqueda}
+        placeholder="Buscar por nombre o descripción..."
+        textoBoton="Nuevo Medicamento"
+        onNuevo={abrirNuevo}
+      />
 
-      <div className="bg-marca-beigeclaro2 p-4 rounded-xl shadow-sm border border-gray-200 flex gap-4 mb-4 mt-6">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-50">
-          <h2 className="text-center text-2xl font-nunito font-extrabold text-gray-800">Listado de Medicamentos</h2>
-          <BotonesExportar {...reporteMedicamentos} datos={medicamentos} />
-        </div>
-        <button
-          type="button"
-          onClick={abrirNuevo}
-          className="inline-flex items-center gap-2 rounded-full bg-marca-naranja px-5 py-2 font-nunito font-bold text-marca-oscuro transition hover:opacity-90"
-        >
-          <Plus size={18} />
-          Nuevo Medicamento
-        </button>
-      </div>
+      <Mensaje texto={mensaje} />
 
-      {medicamentos.length === 0 ? (
-        <p className="font-nunito text-sm text-marca-oscuro/60">
+      {/* GRILLA DE TARJETAS DE MEDICAMENTOS */}
+      {filtrarPorTexto(medicamentos, busqueda).length === 0 ? (
+        <p className="font-nunito text-sm font-semibold text-marca-oscuro/60 text-center mt-8">
           No hay medicamentos para mostrar.
         </p>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {medicamentos.map((m) => (
+          {filtrarPorTexto(medicamentos, busqueda).map((m) => (
             <TarjetaMedicamento
               key={m.idMedicamento}
               medicamento={m}

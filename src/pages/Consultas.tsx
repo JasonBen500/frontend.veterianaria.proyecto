@@ -1,14 +1,35 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
 import axios from "axios";
+import { useSearchParams } from "react-router-dom";
+import Modal from "../components/Modal";
 import {
   listarConsultasActivas,
   agregarConsulta,
   modificarConsulta,
   anularConsulta,
 } from "../services/consultaService";
+import { listarCitasActivas } from "../services/citaService";
+import { listarMascotasActivas } from "../services/mascotaService";
+import { History, Stethoscope, Thermometer, ClipboardList } from "lucide-react";
 import type { Consulta } from "../types/consulta";
+import type { Cita } from "../types/cita";
+import type { Mascota } from "../types/mascota";
 import Mensaje from "../components/Mensaje";
 import AccionesFila from "../components/AccionesFilas";
+import TablaDatos, { type ColumnaTabla } from "../components/TablaDatos";
+import { reporteConsultas } from "../utils/reportes";
+import BotonesExportar from "../components/BotonesExportar";
+import { VistaDetallesEntidad } from "../components/DetallesDatos";
+import { formatearFecha } from "../utils/fechas";
+import { filtrarPorTexto } from "../utils/busqueda";
+import EncabezadoPagina from "../components/EncabezadoPagina";
+import BarraListado from "../components/BarraListado";
+import ModalFormulario from "../components/formulario/ModalFormulario";
+import Campo from "../components/formulario/Campo";
+import {
+  CLASE_INPUT,
+  CLASE_SELECT,
+} from "../components/formulario/estilosFormulario";
 
 const formInicial: Consulta = {
   idConsulta: null,
@@ -20,9 +41,24 @@ const formInicial: Consulta = {
 
 function ConsultasPage() {
   const [consultas, setConsultas] = useState<Consulta[]>([]);
+  const [citas, setCitas] = useState<Cita[]>([]);
+  const [mascotas, setMascotas] = useState<Mascota[]>([]);
   const [form, setForm] = useState<Consulta>(formInicial);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [mensaje, setMensaje] = useState("");
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [busqueda, setBusqueda] = useState(searchParams.get("buscar") ?? "");
+
+  // Estados para el modal de detalles
+  const idDesdeUrl = Number(searchParams.get("detalle")) || null;
+  const [modalDetallesAbierto, setModalDetallesAbierto] = useState(idDesdeUrl !== null);
+  const [idDetalleSeleccionado, setIdDetalleSeleccionado] = useState<number | null>(idDesdeUrl);
+
+  const handleVerDetalles = (id: number) => {
+    setIdDetalleSeleccionado(id);
+    setModalDetallesAbierto(true);
+  };
 
   const cargarConsultas = async () => {
     try {
@@ -33,12 +69,32 @@ function ConsultasPage() {
     }
   };
 
+  const cargarCitas = async () => {
+    try {
+      const respuesta = await listarCitasActivas();
+      setCitas(respuesta.data);
+    } catch (error) {
+      console.error("Error al listar citas", error);
+    }
+  };
+
+  const cargarMascotas = async () => {
+    try {
+      const respuesta = await listarMascotasActivas();
+      setMascotas(respuesta.data);
+    } catch (error) {
+      console.error("Error al listar mascotas", error);
+    }
+  };
+
   useEffect(() => {
     cargarConsultas();
+    cargarCitas();
+    cargarMascotas();
   }, []);
 
   const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({
@@ -65,6 +121,7 @@ function ConsultasPage() {
         await agregarConsulta(form);
         setMensaje("Consulta creada correctamente");
       }
+      setModalAbierto(false);
       setForm(formInicial);
       setModoEdicion(false);
       cargarConsultas();
@@ -76,6 +133,8 @@ function ConsultasPage() {
   const handleModificar = (consulta: Consulta) => {
     setForm(consulta);
     setModoEdicion(true);
+    setMensaje("");
+    setModalAbierto(true);
   };
 
   const handleAnular = async (id: number) => {
@@ -89,104 +148,167 @@ function ConsultasPage() {
     }
   };
 
+  const abrirNuevo = () => {
+    setForm(formInicial);
+    setModoEdicion(false);
+    setMensaje("");
+    setModalAbierto(true);
+  };
+
+  const cerrarModal = () => {
+    setModalAbierto(false);
+    setForm(formInicial);
+    setModoEdicion(false);
+    setMensaje("");
+  };
+
+  const columnasTabla: ColumnaTabla<Consulta>[] = [
+    { encabezado: "Diagnóstico", valor: (c) => c.diagnostico },
+    { encabezado: "Síntomas", valor: (c) => c.sintomas },
+    { encabezado: "Cita Asociada", valor: (c) => c.descripcionCita ?? `Cita #${c.idCita}` },
+  ];
+
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">
-        {modoEdicion ? "Modificar Consulta" : "Ingresar Consulta"}
-      </h2>
+    <div className="p-6 max-w-6xl mx-auto mb-4">
+      {/* HEADER SUPERIOR */}
+      <EncabezadoPagina
+        titulo="Historial de Consultas"
+        ruta="/consultas"
+        icono={History}
+      />
+
+      {/* TARJETA UNIFICADA DE CONTROLES DE TABLA */}
+      <BarraListado
+        titulo="Listado de Consultas"
+        exportar={<BotonesExportar {...reporteConsultas} datos={consultas} />}
+        busqueda={busqueda}
+        onBuscar={setBusqueda}
+        placeholder="Buscar por diagnóstico, síntomas o cita..."
+        textoBoton="Nueva Consulta"
+        onNuevo={abrirNuevo}
+      />
+
       <Mensaje texto={mensaje} />
 
-      <form
-        onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 bg-white p-6 rounded-lg shadow"
-      >
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Diagnóstico
-          </label>
-          <textarea
-            name="diagnostico"
-            value={form.diagnostico}
-            onChange={handleChange}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+      {/* TABLA DE DATOS UNIFICADA */}
+      <TablaDatos
+        columnas={columnasTabla}
+        datos={filtrarPorTexto(consultas, busqueda)}
+        claveFila={(c) => c.idConsulta}
+        acciones={(c) => (
+          <AccionesFila
+            onVerDetalles={() => handleVerDetalles(c.idConsulta!)}
+            onEditar={() => handleModificar(c)}
+            onAnular={() => c.idConsulta !== null && handleAnular(c.idConsulta)}
           />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Síntomas
-          </label>
+        )}
+      />
+
+      {/* MODAL DEL FORMULARIO DE CONSULTAS */}
+      {/* MODAL DEL FORMULARIO DE CONSULTAS */}
+      <ModalFormulario
+        abierto={modalAbierto}
+        titulo={modoEdicion ? "MODIFICAR CONSULTA" : "NUEVA CONSULTA"}
+        subtitulo={
+          modoEdicion
+            ? "Edita la información de la consulta:"
+            : "Ingresa los datos de la nueva consulta médica:"
+        }
+        icono={Stethoscope}
+        mensaje={mensaje}
+        onSubmit={handleSubmit}
+        onCerrar={cerrarModal}
+      >
+        {/* COMBOBOX DE CITA CON CRUCE DE MASCOTA */}
+        <Campo etiqueta="Cita Asociada:" className="md:col-span-2">
+          <select
+            name="idCita"
+            value={form.idCita === 0 ? "" : form.idCita}
+            onChange={handleChange}
+            required
+            className={CLASE_SELECT}
+          >
+            <option value="" disabled className="bg-marca-beige-claro">
+              Seleccione la cita correspondiente...
+            </option>
+            {citas.map((c: any) => {
+              let nombreMascota =
+                c.nombreMascota || c.nombre_mascota || c.mascota?.nombre;
+
+              if (!nombreMascota && c.idMascota) {
+                const mascotaEncontrada = mascotas.find(
+                  (m: any) => String(m.idMascota) === String(c.idMascota),
+                );
+                nombreMascota = mascotaEncontrada?.nombre;
+              }
+              const textoFinal =
+                nombreMascota || `Mascota ID: ${c.idMascota ?? "N/A"}`;
+
+              return (
+                <option
+                  key={c.idCita}
+                  value={c.idCita ?? undefined}
+                  className="bg-marca-beigeclaro2"
+                >
+                  Cita #{c.idCita} - Paciente: {textoFinal} (
+                  {formatearFecha(c.fecha)})
+                </option>
+              );
+            })}
+          </select>
+        </Campo>
+
+        <Campo
+          etiqueta="Síntomas:"
+          icono={Thermometer}
+          className="md:col-span-2"
+        >
           <textarea
             name="sintomas"
             value={form.sintomas}
             onChange={handleChange}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            rows={3}
+            placeholder="Ej. Fiebre alta, decaimiento..."
+            className={CLASE_INPUT}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            ID Cita
-          </label>
-          <input
-            type="number"
-            name="idCita"
-            value={form.idCita}
-            onChange={handleChange}
-            min={1}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
-        <button
-          type="submit"
-          className="col-span-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
-        >
-          Guardar
-        </button>
-      </form>
+        </Campo>
 
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">
-        Listado de Consultas
-      </h2>
-      <table className="w-full border-collapse bg-white rounded-lg shadow overflow-hidden">
-        <thead>
-          <tr>
-            <th className="bg-gray-100 text-left px-4 py-2 text-sm font-semibold text-gray-600">
-              Diagnóstico
-            </th>
-            <th className="bg-gray-100 text-left px-4 py-2 text-sm font-semibold text-gray-600">
-              Síntomas
-            </th>
-            <th className="bg-gray-100 text-left px-4 py-2 text-sm font-semibold text-gray-600">
-              ID Cita
-            </th>
-            <th className="bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600">
-              Acciones
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {consultas.map((c) => (
-            <tr key={c.idConsulta}>
-              <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {c.diagnostico}
-              </td>
-              <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {c.sintomas}
-              </td>
-              <td className="px-4 py-2 border-t text-sm text-gray-700">
-                {c.descripcionCita ?? "—"}
-              </td>
-              <td className="px-4 py-2 border-t text-sm text-center">
-                <td className="px-4 py-2 border-t text-sm text-center">
-                  <AccionesFila
-                    onEditar={() => handleModificar(c)}
-                    onAnular={() => c.idConsulta !== null && handleAnular(c.idConsulta)}
-                  />
-                </td>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        <Campo
+          etiqueta="Diagnóstico:"
+          icono={ClipboardList}
+          className="md:col-span-2"
+        >
+          <textarea
+            name="diagnostico"
+            value={form.diagnostico}
+            onChange={handleChange}
+            rows={3}
+            placeholder="Ej. Infección respiratoria, aplicar tratamiento..."
+            className={CLASE_INPUT}
+          />
+        </Campo>
+      </ModalFormulario>
+
+      {/* MODAL DE DETALLES */}
+      <Modal
+        abierto={modalDetallesAbierto}
+        titulo="Detalles de la Consulta"
+        subtitulo="Información médica completa"
+        icono={Stethoscope}
+        onCerrar={() => {
+          setModalDetallesAbierto(false);
+          setSearchParams({}, { replace: true });
+        }}
+      >
+        {idDetalleSeleccionado && (
+          <VistaDetallesEntidad
+            entity="detallecita"
+            id={idDetalleSeleccionado}
+            configReporte={reporteConsultas}
+          />
+        )}
+      </Modal>
+
     </div>
   );
 }

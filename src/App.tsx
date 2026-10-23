@@ -13,7 +13,6 @@ import TratamientosPage from "./pages/Tratamientos";
 import MedicosPage from "./pages/Medicos";
 import UsuariosPage from "./pages/Usuarios";
 import PerfilesPage from "./pages/Perfiles";
-import RegistroWizard from "./pages/RegistroWizard";
 import Reportes from "./pages/Reportes";
 import Administracion from "./pages/Administracion";
 
@@ -39,9 +38,22 @@ function App() {
         <Route path="/medicamentos" element={<MedicamentosPage />} />
         <Route path="/tratamientos" element={<TratamientosPage />} />
         <Route path="/medicos" element={<MedicosPage />} />
-        <Route path="/usuarios" element={<UsuariosPage />} />
-        <Route path="/perfiles" element={<PerfilesPage />} />
-        <Route path="/registro" element={<RegistroWizard />} />
+        <Route
+          path="/usuarios"
+          element={
+            <RutaProtegida soloAdmin>
+              <UsuariosPage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/perfiles"
+          element={
+            <RutaProtegida soloAdmin>
+              <PerfilesPage />
+            </RutaProtegida>
+          }
+        />
         <Route path="/reportes" element={<Reportes />} />
         <Route path="/administracion" element={<Administracion />} />
       </Route>

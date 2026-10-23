@@ -2,6 +2,9 @@ import { useState, useEffect, type ChangeEvent } from "react";
 import { listarMedicosActivos } from "../../services/medicoService";
 import type { Medico } from "../../types/medico";
 import type { Cita } from "../../types/cita";
+import { ArrowLeft, CalendarHeart, Check, Save } from "lucide-react";
+import Campo from "../formulario/Campo";
+import { CLASE_INPUT, CLASE_SELECT } from "../formulario/estilosFormulario";
 
 interface Props {
   idMascota: number;
@@ -47,62 +50,68 @@ function PasoCita({ idMascota, onGuardarSinCita, onAgendarCita, onAtras }: Props
 
   if (!quiereCita) {
     return (
-      <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow text-center">
-        <h2 className="text-xl font-bold text-gray-800 mb-1">Paso 3 de 3</h2>
-        <p className="text-sm text-gray-500 mb-6">
-          ¿Deseas agendar una cita para esta mascota ahora?
+      <div className="flex flex-col items-center gap-4 py-4 text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-marca-naranja/30 text-marca-oscuro shadow-md">
+          <CalendarHeart size={38} />
+        </div>
+        <h2 className="font-nunito text-2xl font-extrabold text-marca-oscuro">
+          ¿Deseas agendar una cita ahora?
+        </h2>
+        <p className="font-nunito text-sm font-semibold text-marca-oscuro/60">
+          Puedes guardar el registro sin cita y agendarla después.
         </p>
-        <div className="flex gap-3">
+
+        <div className="mt-2 flex w-full flex-wrap justify-between gap-3 border-t border-marca-oscuro/10 pt-5">
           <button
+            type="button"
             onClick={onAtras}
-            className="flex-1 border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-50 transition"
+            className="inline-flex items-center gap-2 rounded-full border-2 border-marca-oscuro px-6 py-2 font-nunito font-bold text-marca-oscuro transition hover:bg-marca-oscuro hover:text-white"
           >
+            <ArrowLeft size={18} />
             Atrás
           </button>
-          <button
-            onClick={onGuardarSinCita}
-            className="flex-1 border border-blue-600 text-blue-600 py-2 rounded hover:bg-blue-50 transition"
-          >
-            Guardar sin cita
-          </button>
-          <button
-            onClick={() => setQuiereCita(true)}
-            className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
-          >
-            Agendar cita
-          </button>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={onGuardarSinCita}
+              className="inline-flex items-center gap-2 rounded-full bg-marca-verde px-6 py-2 font-nunito font-bold text-marca-oscuro shadow-md transition hover:-translate-y-0.5 hover:opacity-90"
+            >
+              <Save size={18} />
+              Guardar sin cita
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuiereCita(true)}
+              className="inline-flex items-center gap-2 rounded-full bg-marca-naranja px-6 py-2 font-nunito font-bold text-marca-oscuro shadow-md transition hover:-translate-y-0.5 hover:opacity-90"
+            >
+              <CalendarHeart size={18} />
+              Agendar cita
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow">
-      <h2 className="text-xl font-bold text-gray-800 mb-1">Paso 3 de 3</h2>
-      <p className="text-sm text-gray-500 mb-4">Datos de la cita</p>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Fecha *
-          </label>
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <Campo etiqueta="Fecha *">
           <input
             type="date"
             name="fecha"
             value={form.fecha}
             onChange={handleChange}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className={CLASE_INPUT}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Médico *
-          </label>
+        </Campo>
+        <Campo etiqueta="Médico *">
           <select
             name="idMedico"
             value={form.idMedico}
             onChange={handleChange}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className={CLASE_SELECT}
           >
             <option value={0}>Selecciona un médico</option>
             {medicos.map((m) => (
@@ -111,45 +120,44 @@ function PasoCita({ idMascota, onGuardarSinCita, onAgendarCita, onAtras }: Props
               </option>
             ))}
           </select>
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Motivo *
-          </label>
+        </Campo>
+        <Campo etiqueta="Motivo *" className="md:col-span-2">
           <input
             name="motivo"
             value={form.motivo}
             onChange={handleChange}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="Ej. Control y vacunas"
+            className={CLASE_INPUT}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Total
-          </label>
+        </Campo>
+        <Campo etiqueta="Total">
           <input
             type="number"
             name="total"
             value={form.total}
             onChange={handleChange}
             min={0}
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className={CLASE_INPUT}
           />
-        </div>
+        </Campo>
       </div>
 
-      <div className="flex gap-3 mt-6">
+      <div className="flex justify-between gap-3 border-t border-marca-oscuro/10 pt-5">
         <button
+          type="button"
           onClick={() => setQuiereCita(false)}
-          className="flex-1 border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-50 transition"
+          className="inline-flex items-center gap-2 rounded-full border-2 border-marca-oscuro px-6 py-2 font-nunito font-bold text-marca-oscuro transition hover:bg-marca-oscuro hover:text-white"
         >
+          <ArrowLeft size={18} />
           Atrás
         </button>
         <button
+          type="button"
           disabled={!puedeAgendar}
           onClick={() => onAgendarCita(form)}
-          className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 rounded-full bg-marca-naranja px-6 py-2 font-nunito font-bold text-marca-oscuro shadow-md transition hover:-translate-y-0.5 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-marca-oscuro/10 disabled:text-marca-oscuro/40 disabled:shadow-none disabled:hover:translate-y-0"
         >
+          <Check size={18} />
           Confirmar y guardar todo
         </button>
       </div>

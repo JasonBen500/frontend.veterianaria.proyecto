@@ -1,6 +1,18 @@
-import { MapPin, PawPrint, Phone, User } from "lucide-react";
+import { MapPin, PawPrint, Phone, User, Dog, Cat, Heart, type LucideIcon } from "lucide-react";
 import type { Mascota } from "../../types/mascota";
 import type { Dueno } from "../../types/dueno";
+
+function estiloEspecie(especie?: string | null): { Icono: LucideIcon; color: string } {
+  const texto = String(especie ?? "").toLowerCase();
+  if (texto.includes("perro") || texto.includes("canino")) {
+    return { Icono: Dog, color: "bg-marca-verde/40" };
+  }
+  if (texto.includes("gato") || texto.includes("felino")) {
+    return { Icono: Cat, color: "bg-marca-naranja/30" };
+  }
+  return { Icono: PawPrint, color: "bg-marca-coral/25" };
+}
+
 
 interface Props {
   mascotas: Mascota[];
@@ -22,9 +34,14 @@ function RegistrosRecientes({ mascotas, duenos, cargando, error }: Props) {
 
   return (
     <section>
-      <h2 className="mb-3 mt-1 font-nunito text-lg font-extrabold text-marca-oscuro">
-        Registros Recientes
-      </h2>
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-marca-coral/25 text-marca-oscuro">
+          <Heart size={20} />
+        </div>
+        <h2 className="font-nunito text-lg font-extrabold text-marca-oscuro">
+          Registros Recientes
+        </h2>
+      </div>
 
       {cargando && (
         <p className="font-nunito text-sm text-marca-oscuro/60">Cargando…</p>
@@ -48,16 +65,24 @@ function RegistrosRecientes({ mascotas, duenos, cargando, error }: Props) {
           const nombreDueno = dueno
             ? `${dueno.nombre} ${dueno.apellido}`
             : (mascota.nombreDueno ?? "—");
+          const { Icono, color } = estiloEspecie(mascota.especie);
 
           return (
             <article
               key={mascota.idMascota}
-              className="rounded-2xl border border-marca-oscuro/10 bg-marca-beigeclaro2 p-6 shadow-sm"
+              className="group relative overflow-hidden rounded-3xl border border-marca-oscuro/10 bg-marca-beigeclaro2 p-6 shadow-lg shadow-marca-cafenigga/15 transition hover:-translate-y-1"
             >
+              <PawPrint
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-3 -top-3 h-24 w-24 rotate-12 text-marca-oscuro/5 transition group-hover:rotate-0"
+              />
+
               {/* Mascota */}
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-marca-naranja/25 text-marca-oscuro">
-                  <PawPrint size={22} />
+              <div className="relative mb-4 flex items-center gap-3">
+                <div
+                  className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-marca-oscuro shadow-sm ${color}`}
+                >
+                  <Icono size={28} />
                 </div>
                 <div className="min-w-0">
                   <p className="truncate font-nunito text-lg font-extrabold text-marca-oscuro">
@@ -70,7 +95,7 @@ function RegistrosRecientes({ mascotas, duenos, cargando, error }: Props) {
               </div>
 
               {/* Dueño */}
-              <div className="space-y-2 border-t border-marca-oscuro/10 pt-4 font-nunito text-sm text-marca-oscuro">
+              <div className="relative space-y-2 border-t border-marca-oscuro/10 pt-4 font-nunito text-sm text-marca-oscuro">
                 <p className="flex items-center gap-2">
                   <User size={16} className="shrink-0 text-marca-oscuro/60" />
                   <span className="truncate font-semibold">{nombreDueno}</span>

@@ -1,7 +1,7 @@
 import { Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { Cita } from "../../types/cita";
 import type { Consulta } from "../../types/consulta";
-import { resumenSemana } from "../../utiils/estadisticas";
+import { resumenSemana } from "../../utils/estadisticas";
 
 interface Props {
   citas: Cita[];

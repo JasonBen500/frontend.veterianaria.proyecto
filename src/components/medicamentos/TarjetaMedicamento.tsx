@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Minus, Pill, Plus } from "lucide-react";
+import { Minus, Pill, Plus, Package, TriangleAlert } from "lucide-react";
 import AccionesFila from "../AccionesFilas";
 import type { Medicamentos } from "../../types/medicamentos";
 
@@ -11,8 +11,11 @@ interface Props {
   onAjustarStock: (cambio: number) => Promise<void>;
 }
 
+// A partir de cuántas unidades se avisa "stock bajo"
+const STOCK_BAJO = 4;
+
 const botonStock =
-  "flex h-9 w-9 items-center justify-center rounded-full border border-marca-oscuro text-marca-oscuro transition-colors hover:bg-marca-oscuro hover:text-white disabled:pointer-events-none disabled:opacity-40";
+  "flex h-9 w-9 items-center justify-center rounded-full border-2 border-marca-oscuro bg-white text-marca-oscuro transition hover:bg-marca-oscuro hover:text-white disabled:pointer-events-none disabled:opacity-40";
 
 function TarjetaMedicamento({
   medicamento,
@@ -22,6 +25,9 @@ function TarjetaMedicamento({
   onAjustarStock,
 }: Props) {
   const [ocupado, setOcupado] = useState(false);
+
+  const agotado = medicamento.stock <= 0;
+  const stockBajo = !agotado && medicamento.stock <= STOCK_BAJO;
 
   const ajustar = async (cambio: number) => {
     setOcupado(true);
@@ -33,7 +39,7 @@ function TarjetaMedicamento({
   };
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-marca-oscuro/10 bg-marca-beigeclaro2 shadow-sm">
+    <article className="group flex flex-col overflow-hidden rounded-3xl border border-marca-oscuro/10 bg-marca-beigeclaro2 shadow-lg shadow-marca-cafenigga/15 transition hover:-translate-y-1">
       {/* Imagen de referencia, o un ícono si todavía no tiene */}
       <div className="relative h-40 bg-marca-naranja/25">
         {medicamento.imagen ? (
@@ -43,13 +49,27 @@ function TarjetaMedicamento({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-marca-oscuro/40">
-            <Pill size={48} />
+          <div className="flex h-full items-center justify-center text-marca-oscuro/30">
+            <Pill size={56} />
           </div>
         )}
 
+        {/* Aviso de stock */}
+        {(agotado || stockBajo) && (
+          <span
+            className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-nunito text-xs font-extrabold shadow-md ${
+              agotado
+                ? "bg-marca-vino text-white"
+                : "bg-marca-naranja text-marca-oscuro"
+            }`}
+          >
+            <TriangleAlert size={14} />
+            {agotado ? "Agotado" : "Stock bajo"}
+          </span>
+        )}
+
         {/* Acciones en la esquina */}
-        <div className="absolute right-2 top-2 rounded-full bg-white/90 px-1 shadow-sm">
+        <div className="absolute right-2 top-2 rounded-full bg-white/90 px-2 py-1 shadow-md">
           <AccionesFila
             onEditar={onEditar}
             onAnular={onAnular}
@@ -68,23 +88,21 @@ function TarjetaMedicamento({
           </p>
         </div>
 
-        <p className="font-nunito text-sm font-semibold text-marca-oscuro">
-          Precio:{" "}
-          <span className="font-extrabold">
-            {Number(medicamento.precio).toFixed(2)}
-          </span>
+        <p className="inline-flex w-fit items-center rounded-full bg-marca-verde/30 px-3 py-1 font-nunito text-sm font-extrabold text-marca-oscuro">
+          Q {Number(medicamento.precio).toFixed(2)}
         </p>
 
         {/* Stock con botones de menos y más */}
         <div className="mt-auto flex items-center justify-between border-t border-marca-oscuro/10 pt-3">
-          <span className="font-nunito text-sm font-semibold text-marca-oscuro/60">
+          <span className="flex items-center gap-1.5 font-nunito text-sm font-bold text-marca-oscuro/60">
+            <Package size={16} />
             Stock
           </span>
           <div className="flex items-center gap-3">
             <button
               type="button"
               aria-label="Restar uno"
-              disabled={ocupado || medicamento.stock <= 0}
+              disabled={ocupado || agotado}
               onClick={() => ajustar(-1)}
               className={botonStock}
             >
