@@ -39,6 +39,7 @@ export function useCrud<T extends object>(config: ConfigCrud<T>) {
       setItems(respuesta.data);
     } catch (error) {
       console.error(config.textos.errorListar, error);
+      setMensaje(`${config.textos.errorListar}: ${obtenerMensajeError(error)}`);
     }
   }, [config]);
 
@@ -113,6 +114,7 @@ export function useCrud<T extends object>(config: ConfigCrud<T>) {
     modoEdicion,
     modalAbierto,
     mensaje,
+    setMensaje,
     recargar,
     handleChange,
     abrirNuevo,

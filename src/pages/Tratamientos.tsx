@@ -12,12 +12,14 @@ import AccionesFila from "../components/AccionesFilas";
 import BotonesExportar from "../components/BotonesExportar";
 import EncabezadoPagina from "../components/EncabezadoPagina";
 import BarraListado from "../components/BarraListado";
+import FiltrosTabla from "../components/FiltrosTabla";
 import ModalFormulario from "../components/formulario/ModalFormulario";
 import Campo from "../components/formulario/Campo";
 import { CLASE_INPUT } from "../components/formulario/estilosFormulario";
 import { useCrud, type ConfigCrud } from "../hooks/useCrud";
 import { reporteTratamientos } from "../utils/reportes";
 import { filtrarPorTexto } from "../utils/busqueda";
+import { useFiltros } from "../hooks/useFiltros";
 
 const configTratamientos: ConfigCrud<Tratamiento> = {
   listar: listarTratamientosActivos,
@@ -45,7 +47,10 @@ function TratamientosPage() {
   const crud = useCrud(configTratamientos);
   const [busqueda, setBusqueda] = useState("");
 
-  const tratamientosFiltrados = filtrarPorTexto(crud.items, busqueda);
+  const filtros = useFiltros(crud.items, [
+    { tipo: "numero", id: "precio", etiqueta: "Precio (Q)", valor: (t) => t.precio },
+  ]);
+  const tratamientosFiltrados = filtrarPorTexto(filtros.filtrados, busqueda);
 
   return (
     <div className="p-6 max-w-6xl mx-auto mb-4">
@@ -66,6 +71,8 @@ function TratamientosPage() {
         textoBoton="Nuevo Tratamiento"
         onNuevo={crud.abrirNuevo}
       />
+
+      <FiltrosTabla estado={filtros} />
 
       <Mensaje texto={crud.mensaje} />
 

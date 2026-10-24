@@ -1,8 +1,12 @@
 import { formatearFecha } from "./fechas";
 import type { Cita } from "../types/cita";
 
-// Texto para mostrar una cita en un select: "Cita #3 - Paciente: Firulais (05/11/2026)"
+// Texto para mostrar una cita en un select: "Firulais · 5 nov 2026 · Vacuna"
 export const etiquetaCita = (cita: Cita) =>
-  `Cita #${cita.idCita} - Paciente: ${
-    cita.nombreMascota ?? `Mascota ID: ${cita.idMascota}`
-  } (${formatearFecha(cita.fecha)})`;
+  [
+    cita.nombreMascota ?? "Mascota sin nombre",
+    formatearFecha(cita.fecha),
+    cita.motivo,
+  ]
+    .filter(Boolean)
+    .join(" · ");

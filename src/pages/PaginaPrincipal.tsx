@@ -13,6 +13,7 @@ import {
   Dog,
   Cat,
   Syringe,
+  Activity,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import TarjetaContador from "../components/dashboard/TarjetaContador";
@@ -63,7 +64,7 @@ function PaginaPrincipal() {
       />
 
       {/* Encabezado de bienvenida */}
-      <header className="relative overflow-hidden rounded-3xl border border-marca-oscuro/10 bg-marca-oscuro p-6 shadow-lg shadow-marca-cafenigga/15 md:p-8">
+      <header className="relative overflow-hidden rounded-3xl border border-marca-oscuro/10 bg-marca-azulmarino p-6 shadow-lg shadow-marca-cafenigga/15 md:p-8">
         <PawPrint
           aria-hidden="true"
           className="pointer-events-none absolute -right-6 -top-8 h-44 w-44 rotate-12 text-white/5"
@@ -154,6 +155,14 @@ function PaginaPrincipal() {
           >
             <ChartColumn size={20} />
             Reportes Generales
+          </Link>
+
+          <Link
+            to="/historial"
+            className="inline-flex items-center gap-2 rounded-full border-2 border-marca-oscuro px-6 py-3 font-nunito font-bold text-marca-oscuro transition hover:bg-marca-oscuro hover:text-white"
+          >
+            <Activity size={20} />
+            Historial de Movimientos
           </Link>
         </div>
       </section>

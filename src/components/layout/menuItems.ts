@@ -11,6 +11,7 @@ import {
   Stethoscope,
   ShieldCheck,
   UserCog,
+  Activity,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -36,6 +37,7 @@ export const secciones: SeccionMenu[] = [
       { to: "/mascotas", label: "Mascotas", icon: PawPrint },
       { to: "/citas", label: "Citas", icon: CalendarDays },
       { to: "/consultas", label: "Historial de Consultas", icon: History },
+      { to: "/historial", label: "Historial de Movimientos", icon: Activity },
     ],
   },
   {

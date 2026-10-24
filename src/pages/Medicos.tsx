@@ -13,6 +13,7 @@ import AccionesFila from "../components/AccionesFilas";
 import BotonesExportar from "../components/BotonesExportar";
 import EncabezadoPagina from "../components/EncabezadoPagina";
 import BarraListado from "../components/BarraListado";
+import FiltrosTabla from "../components/FiltrosTabla";
 import ModalFormulario from "../components/formulario/ModalFormulario";
 import Campo from "../components/formulario/Campo";
 import {
@@ -21,6 +22,7 @@ import {
 } from "../components/formulario/estilosFormulario";
 import { useCrud, type ConfigCrud } from "../hooks/useCrud";
 import { useLista } from "../hooks/useLista";
+import { useFiltros } from "../hooks/useFiltros";
 import { reporteMedicos } from "../utils/reportes";
 import { filtrarPorTexto } from "../utils/busqueda";
 
@@ -54,7 +56,11 @@ function MedicosPage() {
   const usuarios = useLista(listarUsuariosActivos);
   const [busqueda, setBusqueda] = useState("");
 
-  const medicosFiltrados = filtrarPorTexto(crud.items, busqueda);
+  const filtros = useFiltros(crud.items, [
+    { tipo: "select", id: "especialidad", etiqueta: "Especialidad", valor: (m) => m.especialidad },
+    { tipo: "select", id: "usuario", etiqueta: "Usuario asociado", valor: (m) => m.nombreUsuario },
+  ]);
+  const medicosFiltrados = filtrarPorTexto(filtros.filtrados, busqueda);
 
   return (
     <div className="p-6 max-w-5xl mx-auto mb-4">
@@ -73,6 +79,8 @@ function MedicosPage() {
         textoBoton="Nuevo Médico"
         onNuevo={crud.abrirNuevo}
       />
+
+      <FiltrosTabla estado={filtros} />
 
       <Mensaje texto={crud.mensaje} />
 

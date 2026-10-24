@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Syringe, Pill, Plus, X, ArrowLeft, Check, Info } from "lucide-react";
 import { listarTratamientosActivos } from "../../services/tratamientoService";
 import { listarMedicamentosActivos } from "../../services/medicamentosService";
 import type { Tratamiento } from "../../types/tratamiento";
@@ -10,7 +11,13 @@ import type {
 
 interface Props {
   onAtras?: () => void;
-  onConfirmar: (
+  onConfirmar?: (
+    tratamientos: LineaTratamiento[],
+    medicamentos: LineaMedicamento[],
+  ) => void;
+  // Modo "dentro de otro formulario"
+  embebido?: boolean;
+  onCambio?: (
     tratamientos: LineaTratamiento[],
     medicamentos: LineaMedicamento[],
   ) => void;
@@ -21,7 +28,8 @@ interface Props {
 function PasoTratamiento({
   onAtras,
   onConfirmar,
-  encabezado = "Paso 4 de 4",
+  embebido = false,
+  onCambio,
   textoConfirmar = "Confirmar y guardar todo",
 }: Props) {
   const [tratamientos, setTratamientos] = useState<Tratamiento[]>([]);
@@ -52,10 +60,12 @@ function PasoTratamiento({
       return;
     }
     setError("");
-    setLineasTrat((prev) => [
-      ...prev,
+    const nuevas = [
+      ...lineasTrat,
       { idTratamiento: t.idTratamiento!, nombre: t.nombre, precio: t.precio },
-    ]);
+    ];
+    setLineasTrat(nuevas);
+    onCambio?.(nuevas, lineasMed);
     setIdTratSel(0);
   };
 
@@ -72,15 +82,12 @@ function PasoTratamiento({
     }
     setError("");
 
-    if (yaAgregada) {
-      setLineasMed((prev) =>
-        prev.map((l) =>
-          l.idMedicamento === idMedSel ? { ...l, cantidad: totalPedido } : l,
-        ),
-      );
-    } else {
-      setLineasMed((prev) => [
-        ...prev,
+    const nuevas = yaAgregada
+      ? lineasMed.map((l) =>
+        l.idMedicamento === idMedSel ? { ...l, cantidad: totalPedido } : l,
+      )
+      : [
+        ...lineasMed,
         {
           idMedicamento: m.idMedicamento!,
           nombre: m.nombre,
@@ -88,152 +95,218 @@ function PasoTratamiento({
           stock: m.stock,
           cantidad,
         },
-      ]);
-    }
+      ];
+    setLineasMed(nuevas);
+    onCambio?.(lineasTrat, nuevas);
     setIdMedSel(0);
     setCantidad(1);
   };
 
-  const quitarTratamiento = (id: number) =>
-    setLineasTrat((prev) => prev.filter((l) => l.idTratamiento !== id));
+  const quitarTratamiento = (id: number) => {
+    const nuevas = lineasTrat.filter((l) => l.idTratamiento !== id);
+    setLineasTrat(nuevas);
+    onCambio?.(nuevas, lineasMed);
+  };
 
-  const quitarMedicamento = (id: number) =>
-    setLineasMed((prev) => prev.filter((l) => l.idMedicamento !== id));
+  const quitarMedicamento = (id: number) => {
+    const nuevas = lineasMed.filter((l) => l.idMedicamento !== id);
+    setLineasMed(nuevas);
+    onCambio?.(lineasTrat, nuevas);
+  };
 
   const total =
     lineasTrat.reduce((suma, l) => suma + l.precio, 0) +
     lineasMed.reduce((suma, l) => suma + l.precio * l.cantidad, 0);
 
+  const CLASE_SELECT =
+    "min-w-0 flex-1 rounded-2xl border border-marca-cafenigga/30 bg-white px-4 py-2.5 font-nunito font-semibold text-marca-oscuro shadow-sm transition focus:border-marca-naranja focus:outline-none focus:ring-2 focus:ring-marca-naranja";
+  const CLASE_AGREGAR =
+    "inline-flex items-center gap-1.5 rounded-full bg-marca-naranja px-5 font-nunito font-bold text-marca-oscuro shadow-md transition hover:-translate-y-0.5 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-marca-oscuro/10 disabled:text-marca-oscuro/40 disabled:shadow-none disabled:hover:translate-y-0";
+  const CLASE_QUITAR =
+    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-marca-vino/10 text-marca-vino transition hover:bg-marca-vino hover:text-white";
+
   return (
-    <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow">
-      <h2 className="text-xl font-bold text-gray-800 mb-1">{encabezado}</h2>
-      <p className="text-sm text-gray-500 mb-4">
-        Tratamientos y medicamentos de la cita (opcional)
+    <div className="space-y-5">
+      <p className="flex items-start gap-2 rounded-2xl bg-marca-verde/20 px-4 py-3 font-nunito text-sm font-semibold text-marca-oscuro">
+        <Info size={18} className="mt-0.5 shrink-0" />
+        Tratamientos y medicamentos de la cita (opcional).
       </p>
 
       {error && (
-        <p className="mb-4 p-3 rounded border text-sm bg-red-50 text-red-700 border-red-200">
+        <p
+          role="alert"
+          className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 font-nunito text-sm font-bold text-red-700"
+        >
           {error}
         </p>
       )}
 
       {/* TRATAMIENTOS */}
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Tratamiento
-      </label>
-      <div className="flex gap-2 mb-3">
-        <select
-          value={idTratSel}
-          onChange={(e) => setIdTratSel(Number(e.target.value))}
-          className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        >
-          <option value={0}>Selecciona un tratamiento</option>
-          {tratamientos.map((t) => (
-            <option key={t.idTratamiento} value={t.idTratamiento!}>
-              {t.nombre} — Q{t.precio}
-            </option>
-          ))}
-        </select>
-        <button
-          disabled={idTratSel === 0}
-          onClick={agregarTratamiento}
-          className="bg-blue-600 text-white px-4 rounded hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
-        >
-          Agregar
-        </button>
-      </div>
-
-      {lineasTrat.map((l) => (
-        <div
-          key={l.idTratamiento}
-          className="flex justify-between items-center text-sm border-b border-gray-100 py-1"
-        >
-          <span>
-            {l.nombre} — Q{l.precio}
+      <section className="rounded-3xl border border-marca-oscuro/10 bg-white p-4 shadow-sm">
+        <h3 className="mb-3 flex items-center gap-2 font-nunito text-base font-extrabold text-marca-oscuro">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-marca-naranja/30">
+            <Syringe size={18} />
           </span>
-          <button
-            onClick={() => quitarTratamiento(l.idTratamiento)}
-            className="text-red-600 hover:underline"
+          Tratamiento
+        </h3>
+
+        <div className="mb-3 flex gap-2">
+          <select
+            value={idTratSel}
+            onChange={(e) => setIdTratSel(Number(e.target.value))}
+            className={CLASE_SELECT}
           >
-            Quitar
+            <option value={0}>N/A</option>
+            {tratamientos.map((t) => (
+              <option key={t.idTratamiento} value={t.idTratamiento!}>
+                {t.nombre} — Q{t.precio}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            disabled={idTratSel === 0}
+            onClick={agregarTratamiento}
+            className={CLASE_AGREGAR}
+          >
+            <Plus size={16} />
+            Agregar
           </button>
         </div>
-      ))}
+
+        <div className="space-y-2">
+          {lineasTrat.length === 0 && (
+            <p className="font-nunito text-sm font-bold text-marca-oscuro/50">
+              N/A
+            </p>
+          )}
+          {lineasTrat.map((l) => (
+            <div
+              key={l.idTratamiento}
+              className="flex items-center justify-between gap-3 rounded-xl bg-marca-beigeclaro2 px-3 py-2 font-nunito text-sm font-bold text-marca-oscuro"
+            >
+              <span className="min-w-0 truncate">{l.nombre}</span>
+              <span className="flex shrink-0 items-center gap-3">
+                Q{l.precio}
+                <button
+                  type="button"
+                  onClick={() => quitarTratamiento(l.idTratamiento)}
+                  aria-label={`Quitar ${l.nombre}`}
+                  className={CLASE_QUITAR}
+                >
+                  <X size={16} />
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* MEDICAMENTOS */}
-      <label className="block text-sm font-medium text-gray-700 mb-1 mt-5">
-        Medicamento
-      </label>
-      <div className="flex gap-2 mb-3">
-        <select
-          value={idMedSel}
-          onChange={(e) => setIdMedSel(Number(e.target.value))}
-          className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        >
-          <option value={0}>Selecciona un medicamento</option>
-          {medicamentos.map((m) => (
-            <option
-              key={m.idMedicamento}
-              value={m.idMedicamento!}
-              disabled={m.stock <= 0}
-            >
-              {m.nombre} — Q{m.precio} (stock: {m.stock})
-            </option>
-          ))}
-        </select>
-        <input
-          type="number"
-          min={1}
-          value={cantidad}
-          onChange={(e) => setCantidad(Math.max(1, Number(e.target.value)))}
-          className="w-20 border border-gray-300 rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <button
-          disabled={idMedSel === 0}
-          onClick={agregarMedicamento}
-          className="bg-blue-600 text-white px-4 rounded hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
-        >
-          Agregar
-        </button>
-      </div>
-
-      {lineasMed.map((l) => (
-        <div
-          key={l.idMedicamento}
-          className="flex justify-between items-center text-sm border-b border-gray-100 py-1"
-        >
-          <span>
-            {l.nombre} x{l.cantidad} — Q{l.precio * l.cantidad}
+      <section className="rounded-3xl border border-marca-oscuro/10 bg-white p-4 shadow-sm">
+        <h3 className="mb-3 flex items-center gap-2 font-nunito text-base font-extrabold text-marca-oscuro">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-marca-verde/40">
+            <Pill size={18} />
           </span>
-          <button
-            onClick={() => quitarMedicamento(l.idMedicamento)}
-            className="text-red-600 hover:underline"
+          Medicamento
+        </h3>
+
+        <div className="mb-3 flex gap-2">
+          <select
+            value={idMedSel}
+            onChange={(e) => setIdMedSel(Number(e.target.value))}
+            className={CLASE_SELECT}
           >
-            Quitar
+            <option value={0}>N/A</option>
+            {medicamentos.map((m) => (
+              <option
+                key={m.idMedicamento}
+                value={m.idMedicamento!}
+                disabled={m.stock <= 0}
+              >
+                {m.nombre} — Q{m.precio} (stock: {m.stock})
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            min={1}
+            value={cantidad}
+            onChange={(e) => setCantidad(Math.max(1, Number(e.target.value)))}
+            aria-label="Cantidad"
+            className="w-20 rounded-2xl border border-marca-cafenigga/30 bg-white px-3 py-2.5 text-center font-nunito font-semibold text-marca-oscuro shadow-sm focus:border-marca-naranja focus:outline-none focus:ring-2 focus:ring-marca-naranja"
+          />
+          <button
+            type="button"
+            disabled={idMedSel === 0}
+            onClick={agregarMedicamento}
+            className={CLASE_AGREGAR}
+          >
+            <Plus size={16} />
+            Agregar
           </button>
         </div>
-      ))}
 
-      <p className="text-right font-semibold text-gray-800 mt-4">
-        Total: Q{total}
-      </p>
+        <div className="space-y-2">
+          {lineasMed.length === 0 && (
+            <p className="font-nunito text-sm font-bold text-marca-oscuro/50">
+              N/A
+            </p>
+          )}
+          {lineasMed.map((l) => (
+            <div
+              key={l.idMedicamento}
+              className="flex items-center justify-between gap-3 rounded-xl bg-marca-beigeclaro2 px-3 py-2 font-nunito text-sm font-bold text-marca-oscuro"
+            >
+              <span className="min-w-0 truncate">
+                {l.nombre} x{l.cantidad}
+              </span>
+              <span className="flex shrink-0 items-center gap-3">
+                Q{l.precio * l.cantidad}
+                <button
+                  type="button"
+                  onClick={() => quitarMedicamento(l.idMedicamento)}
+                  aria-label={`Quitar ${l.nombre}`}
+                  className={CLASE_QUITAR}
+                >
+                  <X size={16} />
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      <div className="flex gap-3 mt-6">
-        {onAtras && (
-          <button
-            onClick={onAtras}
-            className="flex-1 border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-50 transition"
-          >
-            Atrás
-          </button>
-        )}
-        <button
-          onClick={() => onConfirmar(lineasTrat, lineasMed)}
-          className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
-        >
-          {textoConfirmar}
-        </button>
+      <div className="flex justify-end">
+        <p className="rounded-full bg-marca-oscuro px-6 py-2 font-nunito text-lg font-extrabold text-white shadow-md">
+          Total: Q{total}
+        </p>
       </div>
+
+      {!embebido && (
+        <div className="flex justify-between gap-3 border-t border-marca-oscuro/10 pt-5">
+          {onAtras ? (
+            <button
+              type="button"
+              onClick={onAtras}
+              className="inline-flex items-center gap-2 rounded-full border-2 border-marca-oscuro px-6 py-2 font-nunito font-bold text-marca-oscuro transition hover:bg-marca-oscuro hover:text-white"
+            >
+              <ArrowLeft size={18} />
+              Atrás
+            </button>
+          ) : (
+            <span />
+          )}
+          <button
+            type="button"
+            onClick={() => onConfirmar?.(lineasTrat, lineasMed)}
+            className="inline-flex items-center gap-2 rounded-full bg-marca-naranja px-6 py-2 font-nunito font-bold text-marca-oscuro shadow-md transition hover:-translate-y-0.5 hover:opacity-90"
+          >
+            <Check size={18} />
+            {textoConfirmar}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

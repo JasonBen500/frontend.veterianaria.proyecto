@@ -1,7 +1,31 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
+// jspdf y xlsx pesan bastante: se cargan solo cuando alguien exporta
 import { formatearFecha, hoyTexto } from "./fechas";
+import {
+  ALTO_PIE,
+  AZUL_SUAVE,
+  BEIGE,
+  BEIGE_CALIDO,
+  EMPRESA,
+  ESLOGAN,
+  GRIS,
+  MARGEN,
+  NARANJA,
+  NARANJA_SUAVE,
+  OSCURO,
+  cargarLogo,
+  dibujarPie,
+  huella,
+  hueso,
+} from "./pdfEstilo";
+
+// Carga jspdf y su plugin de tablas solo cuando se necesitan
+export async function cargarLibreriasPdf() {
+  const [pdf, tabla] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+  return { jsPDF: pdf.default, autoTable: tabla.default };
+}
 
 // Una columna del reporte
 export interface ColumnaExportacion<T> {
@@ -22,8 +46,6 @@ export interface ConfiguracionReporte {
 }
 
 const EMPRESA_POR_DEFECTO = "Firolaiv";
-const COLOR_PRINCIPAL: [number, number, number] = [39, 45, 77]; // marca-oscuro (#272d4d)
-const COLOR_FILA_ALTERNA: [number, number, number] = [245, 245, 245];
 
 // Formato listo para columnas de fecha: "2026-10-20T00:00..." -> "20 oct 2026"
 export const textoFecha = (valor: unknown) =>
@@ -58,70 +80,135 @@ function armarFilas<T>(
 /**
  * EXPORTAR A PDF
  */
-export function exportarTablaPDF<T>(
+export async function exportarTablaPDF<T>(
   config: ConfiguracionReporte,
   columnas: ColumnaExportacion<T>[],
   datos: T[],
-): void {
-  const doc = new jsPDF();
-  const anchoPagina = doc.internal.pageSize.getWidth();
+): Promise<void> {
   const accion = config.accionPdf ?? "descargar";
   const nombreArchivo = config.nombreArchivo ?? "reporte";
 
-  let posicionXTexto = 14;
+  // Se abre la pestaña antes de esperar la carga para que el navegador no la bloquee
+  const ventana = accion === "abrir" ? window.open("", "_blank") : null;
+  const { jsPDF, autoTable } = await cargarLibreriasPdf().catch((error) => {
+    ventana?.close();
+    throw error;
+  });
+  const logo = config.logo ? null : await cargarLogo();
 
+  const doc = new jsPDF();
+  const ancho = doc.internal.pageSize.getWidth();
+
+  // ---------- Encabezado ----------
+  doc.setFillColor(...BEIGE);
+  doc.rect(0, 0, ancho, 36, "F");
+  doc.setFillColor(...NARANJA);
+  doc.rect(0, 36, ancho, 2.2, "F");
+
+  huella(doc, 112, 12, 10, NARANJA_SUAVE);
+  huella(doc, 132, 28, 8, AZUL_SUAVE);
+  hueso(doc, 86, 28, 18, AZUL_SUAVE);
+
+  let xEslogan = MARGEN;
+  let yEslogan = 29.5;
   if (config.logo) {
-    // Parámetros: imagen, formato, X, Y, Ancho, Alto
-    // Usamos 'PNG' (funciona para PNGs transparentes y JPEGs en jsPDF)
-    doc.addImage(config.logo, 'PNG', 14, 10, 20, 20);
-    
-    // Desplazamos el texto a la derecha (14 inicial + 20 ancho logo + 5 de margen = 39)
-    posicionXTexto = 39; 
+    // Logo enviado por quien llama (cuadrado)
+    doc.addImage(config.logo, "PNG", MARGEN, 8, 20, 20);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(...OSCURO);
+    doc.text(config.nombreEmpresa ?? EMPRESA, MARGEN + 24, 16);
+    xEslogan = MARGEN + 24;
+    yEslogan = 22;
+  } else if (logo) {
+    doc.addImage(logo.data, "PNG", MARGEN, 6, 36, 36 * logo.proporcion);
+  } else {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(...OSCURO);
+    doc.text(config.nombreEmpresa ?? EMPRESA, MARGEN, 18);
+    yEslogan = 26;
   }
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...GRIS);
+  doc.text(ESLOGAN, xEslogan, yEslogan);
 
-  // Encabezado: empresa, título y fecha
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.setTextColor(...COLOR_PRINCIPAL);
- doc.text(config.nombreEmpresa ?? EMPRESA_POR_DEFECTO, posicionXTexto, 18);
+  doc.setFontSize(14);
+  doc.setTextColor(...OSCURO);
+  doc.text(config.tituloPrincipal, ancho - MARGEN, 15, { align: "right" });
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(12);
-  doc.setTextColor(50, 50, 50);
-  doc.text(config.tituloPrincipal, posicionXTexto, 25);
-
-  doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
+  doc.setFontSize(9);
+  doc.setTextColor(...GRIS);
   doc.text(
     `Fecha de emisión: ${config.fecha ?? fechaDeHoy()}`,
-    anchoPagina - 14,
-    18,
+    ancho - MARGEN,
+    22,
     { align: "right" },
   );
 
-  // Línea separadora (siempre se dibuja)
-  doc.setDrawColor(200, 200, 200);
-  doc.line(14, 32, anchoPagina - 14, 26);
+  const anchoPastilla = 34;
+  doc.setFillColor(...OSCURO);
+  doc.roundedRect(
+    ancho - MARGEN - anchoPastilla,
+    25,
+    anchoPastilla,
+    7,
+    3.5,
+    3.5,
+    "F",
+  );
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text(
+    `${datos.length} ${datos.length === 1 ? "registro" : "registros"}`,
+    ancho - MARGEN - anchoPastilla / 2,
+    29.8,
+    { align: "center" },
+  );
 
+  // ---------- Contenido ----------
   if (datos.length === 0) {
-    doc.setFontSize(10);
-    doc.text("No hay registros para mostrar.", 14, 42);
+    doc.setFillColor(...BEIGE);
+    doc.setDrawColor(...BEIGE_CALIDO);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(MARGEN, 48, ancho - 2 * MARGEN, 22, 3, 3, "FD");
+    huella(doc, MARGEN + 12, 57, 9, NARANJA);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10.5);
+    doc.setTextColor(...GRIS);
+    doc.text("No hay registros para mostrar.", MARGEN + 24, 60);
   } else {
     autoTable(doc, {
       head: [columnas.map((col) => col.encabezado)],
       body: armarFilas(columnas, datos),
-      startY: 36,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: COLOR_PRINCIPAL, textColor: 255 },
-      alternateRowStyles: { fillColor: COLOR_FILA_ALTERNA },
+      startY: 46,
+      theme: "striped",
+      margin: { left: MARGEN, right: MARGEN, top: 18, bottom: ALTO_PIE + 8 },
+      styles: { fontSize: 9, cellPadding: 2.8, textColor: [60, 60, 60] },
+      headStyles: {
+        fillColor: OSCURO,
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+      },
+      alternateRowStyles: { fillColor: BEIGE },
     });
   }
+
+  dibujarPie(doc);
 
   if (accion === "descargar") {
     doc.save(`${nombreArchivo}.pdf`);
   } else {
     const url = URL.createObjectURL(doc.output("blob"));
-    window.open(url, "_blank");
+    if (ventana) {
+      ventana.location.href = url;
+    } else {
+      window.open(url, "_blank");
+    }
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
 }
@@ -129,11 +216,12 @@ export function exportarTablaPDF<T>(
 /**
  * EXPORTAR A EXCEL
  */
-export function exportarTablaExcel<T>(
+export async function exportarTablaExcel<T>(
   config: ConfiguracionReporte,
   columnas: ColumnaExportacion<T>[],
   datos: T[],
-): void {
+): Promise<void> {
+  const XLSX = await import("xlsx");
   const nombreArchivo = config.nombreArchivo ?? "reporte";
   const empresa = config.nombreEmpresa ?? EMPRESA_POR_DEFECTO;
   const encabezados = columnas.map((col) => col.encabezado);

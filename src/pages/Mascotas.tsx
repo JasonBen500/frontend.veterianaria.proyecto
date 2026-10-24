@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PawPrint } from "lucide-react";
 import {
   listarMascotasActivas,
@@ -15,6 +16,11 @@ import BotonesExportar from "../components/BotonesExportar";
 import EncabezadoPagina from "../components/EncabezadoPagina";
 import BarraListado from "../components/BarraListado";
 import ModalDetalles from "../components/ModalDetalles";
+import ModalConsulta from "../components/ModalConsulta";
+import FiltrosTabla from "../components/FiltrosTabla";
+import GraficaEspecies from "../components/mascotas/GraficaEspecies";
+import MascotasRecientes from "../components/mascotas/MascotasRecientes";
+import BotonIniciarConsulta from "../components/BotonIniciarConsulta";
 import ModalFormulario from "../components/formulario/ModalFormulario";
 import Campo from "../components/formulario/Campo";
 import {
@@ -24,6 +30,7 @@ import {
 import { useCrud, type ConfigCrud } from "../hooks/useCrud";
 import { useLista } from "../hooks/useLista";
 import { useDetallesUrl } from "../hooks/useDetallesUrl";
+import { useFiltros } from "../hooks/useFiltros";
 import { reporteMascotas } from "../utils/reportes";
 import { filtrarPorTexto } from "../utils/busqueda";
 
@@ -59,7 +66,7 @@ const columnasTabla: ColumnaTabla<Mascota>[] = [
   { encabezado: "Peso", valor: (m) => `${m.peso} kg` },
   {
     encabezado: "Dueño",
-    valor: (m) => (m.nombreDueno ? `${m.idDueno}. ${m.nombreDueno}` : "—"),
+    valor: (m) => m.nombreDueno ?? "—",
   },
 ];
 
@@ -68,13 +75,41 @@ const CLASE_SUFIJO =
 
 function MascotasPage() {
   const crud = useCrud(configMascotas);
-  const duenos = useLista(listarDuenosActivos);
+  const [consultaAbierta, setConsultaAbierta] = useState(false);
+  const navigate = useNavigate();
+
   const detalles = useDetallesUrl();
   const [busqueda, setBusqueda] = useState(detalles.busquedaInicial);
+
+  const filtros = useFiltros(crud.items, [
+    { tipo: "select", id: "especie", etiqueta: "Especie", valor: (m) => m.especie },
+    { tipo: "select", id: "dueno", etiqueta: "Dueño", valor: (m) => m.nombreDueno },
+    { tipo: "numero", id: "edad", etiqueta: "Edad (meses)", valor: (m) => m.edad },
+    { tipo: "numero", id: "peso", etiqueta: "Peso (kg)", valor: (m) => m.peso },
+  ]);
+
+  const visibles = filtrarPorTexto(filtros.filtrados, busqueda);
+
+  const iniciarCita = (idMascota: number | null) =>
+    navigate("/citas", {
+      state: { nuevaCita: true, nuevaCitaMascota: idMascota ?? undefined },
+    });
+
+  const duenos = useLista(listarDuenosActivos);
 
   return (
     <div className="p-6 max-w-6xl mx-auto mb-4">
       <EncabezadoPagina titulo="Mascotas" ruta="/mascotas" />
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <GraficaEspecies mascotas={crud.items} />
+        <MascotasRecientes
+          mascotas={crud.items}
+          onEditar={(m) => crud.handleModificar(m)}
+          onAnular={(m) => m.idMascota !== null && crud.handleAnular(m.idMascota)}
+          onIniciarCita={(m) => iniciarCita(m.idMascota)}
+        />
+      </div>
 
       <BarraListado
         titulo="Lista de Mascotas"
@@ -86,11 +121,13 @@ function MascotasPage() {
         onNuevo={crud.abrirNuevo}
       />
 
+      <FiltrosTabla estado={filtros} />
+
       <Mensaje texto={crud.mensaje} />
 
       <TablaDatos
         columnas={columnasTabla}
-        datos={filtrarPorTexto(crud.items, busqueda)}
+        datos={visibles}
         claveFila={(m) => m.idMascota}
         acciones={(m) => (
           <AccionesFila
@@ -180,7 +217,7 @@ function MascotasPage() {
                 value={d.idDueno ?? undefined}
                 className="bg-marca-beigeclaro2"
               >
-                {d.idDueno}. {d.nombre} {d.apellido}
+                {d.nombre} {d.apellido}
               </option>
             ))}
           </select>
@@ -195,6 +232,19 @@ function MascotasPage() {
         icono={PawPrint}
         subtitulo="Información completa de la mascota"
         onCerrar={detalles.cerrar}
+        acciones={
+          <BotonIniciarConsulta
+            onClick={() => {
+              detalles.cerrar();
+              setConsultaAbierta(true);
+            }}
+          />
+        }
+      />
+      <ModalConsulta
+        abierto={consultaAbierta}
+        idMascota={detalles.id}
+        onCerrar={() => setConsultaAbierta(false)}
       />
     </div>
   );

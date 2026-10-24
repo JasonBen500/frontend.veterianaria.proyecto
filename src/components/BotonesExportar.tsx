@@ -14,7 +14,7 @@ interface Props<T> {
 }
 
 const estiloBoton =
-    "inline-flex items-center gap-1.5 rounded-full border-2 border-marca-oscuro bg-white px-4 py-2 font-nunito text-xs font-extrabold text-marca-oscuro shadow-sm transition hover:-translate-y-0.5 hover:bg-marca-oscuro hover:text-white disabled:pointer-events-none disabled:opacity-40";
+    "inline-flex items-center gap-1.5 rounded-full border-2 border-marca-verdehoja bg-marca-beige-verde-claro px-4 py-2 font-nunito text-xs font-extrabold text-marca-oscuro shadow-sm transition hover:-translate-y-0.5 hover:bg-marca-verdehoja hover:text-white disabled:pointer-events-none disabled:opacity-40";
 
 function BotonesExportar<T>({
     titulo,

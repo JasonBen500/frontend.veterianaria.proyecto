@@ -73,7 +73,7 @@ function BusquedaGlobal({ duenos, mascotas, citas, consultas }: Props) {
             total: rCitas.length,
             items: rCitas.slice(0, MAX_POR_GRUPO).map((c) => ({
                 id: c.idCita,
-                titulo: `Cita #${c.idCita} · ${c.nombreMascota ?? "Sin mascota"}`,
+                titulo: `Cita de ${c.nombreMascota ?? "mascota sin nombre"}`,
                 detalle: `${formatearFecha(c.fecha)} · ${c.motivo}`,
             })),
         },
@@ -84,7 +84,7 @@ function BusquedaGlobal({ duenos, mascotas, citas, consultas }: Props) {
             total: rConsultas.length,
             items: rConsultas.slice(0, MAX_POR_GRUPO).map((c) => ({
                 id: c.idConsulta,
-                titulo: `Consulta #${c.idConsulta}`,
+                titulo: `Consulta de ${c.descripcionCita ?? "una cita"}`,
                 detalle: c.diagnostico || c.sintomas || c.descripcionCita || "",
             })),
         },

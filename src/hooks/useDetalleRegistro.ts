@@ -7,22 +7,26 @@ import type { Dueno } from "../types/dueno";
 import type { Mascota } from "../types/mascota";
 import type { Cita } from "../types/cita";
 import type { DetalleCita } from "../types/detalleCita";
+import { obtenerUnaConsulta } from "../services/consultaService";
+import type { Consulta } from "../types/consulta";
 
 export interface DatosDetalles {
   mascotas: Mascota[];
   duenos: Dueno[];
   citas: Cita[];
+  consultas: Consulta[];
   detalleCita: DetalleCita[];
 }
 
 export function useDatosDetalle(
-  entity: "mascotas" | "duenos" | "citas" | "detallecita",
+  entity: "mascotas" | "duenos" | "citas" | "detallecita" | "consultas",
   id: number
 ) {
   const [datos, setDatos] = useState<DatosDetalles>({
     mascotas: [],
     duenos: [],
     citas: [],
+    consultas: [],
     detalleCita: [],
   });
   const [loading, setLoading] = useState<boolean>(true);
@@ -32,6 +36,7 @@ export function useDatosDetalle(
     mascotas: obtenerUnaMascota,
     duenos: obtenerUnDueno,
     citas: obtenerUnaCita,
+    consultas: obtenerUnaConsulta,
     detallecita: obtenerUnDetalleCita,
   } as const;
   useEffect(() => {
@@ -54,6 +59,7 @@ export function useDatosDetalle(
           mascotas: entity === "mascotas" ? (registro as Mascota[]) : [],
           duenos: entity === "duenos" ? (registro as Dueno[]) : [],
           citas: entity === "citas" ? (registro as Cita[]) : [],
+          consultas: entity === "consultas" ? (registro as Consulta[]) : [],
           detalleCita: entity === "detallecita" ? (registro as DetalleCita[]) : [],
         });
         setError("");

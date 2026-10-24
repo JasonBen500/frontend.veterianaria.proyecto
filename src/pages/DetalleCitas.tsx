@@ -1,5 +1,4 @@
-import { useState, type ChangeEvent } from "react";
-import { ClipboardList } from "lucide-react";
+import { useState } from "react";
 import {
   listarDetallesActivos,
   agregarDetalleCita,
@@ -16,19 +15,15 @@ import TablaDatos, { type ColumnaTabla } from "../components/TablaDatos";
 import BotonesExportar from "../components/BotonesExportar";
 import EncabezadoPagina from "../components/EncabezadoPagina";
 import BarraListado from "../components/BarraListado";
-import ModalFormulario from "../components/formulario/ModalFormulario";
-import Campo from "../components/formulario/Campo";
-import {
-  CLASE_INPUT,
-  CLASE_SELECT,
-} from "../components/formulario/estilosFormulario";
+import FiltrosTabla from "../components/FiltrosTabla";
+import FormularioDetalle, {
+  type TipoDetalle,
+} from "../components/detalles/FormularioDetalle";
 import { useCrud, type ConfigCrud } from "../hooks/useCrud";
 import { useLista } from "../hooks/useLista";
+import { useFiltros } from "../hooks/useFiltros";
 import { reporteDetalleCitas } from "../utils/reportes";
-import { etiquetaCita } from "../utils/citas";
 import { filtrarPorTexto } from "../utils/busqueda";
-
-type TipoDetalle = "medicamento" | "tratamiento";
 
 type PayloadDetalle = Omit<DetalleCita, "idDetalleCita">;
 
@@ -79,7 +74,7 @@ const subtotal = (d: DetalleCita) =>
   Number(d.precioAplicado) * (d.cantidad ?? 1);
 
 const columnasTabla: ColumnaTabla<DetalleCita>[] = [
-  { encabezado: "Cita", valor: (d) => d.descripcionCita ?? `Cita #${d.idCita}` },
+  { encabezado: "Cita", valor: (d) => d.descripcionCita ?? "—" },
   {
     encabezado: "Tipo",
     valor: (d) => (d.idMedicamento ? "Medicamento" : "Tratamiento"),
@@ -105,9 +100,23 @@ function DetalleCitasPage() {
   const [busqueda, setBusqueda] = useState("");
   const [tipo, setTipo] = useState<TipoDetalle>("medicamento");
 
-  const medicamentoElegido = medicamentos.find(
-    (m) => m.idMedicamento === crud.form.idMedicamento,
-  );
+  const filtros = useFiltros(crud.items, [
+    {
+      tipo: "select",
+      id: "tipo",
+      etiqueta: "Tipo",
+      opciones: ["Medicamento", "Tratamiento"],
+      valor: (d) => (d.idMedicamento ? "Medicamento" : "Tratamiento"),
+    },
+    {
+      tipo: "select",
+      id: "concepto",
+      etiqueta: "Concepto",
+      valor: (d) => d.nombreMedicamento ?? d.nombreTratamiento,
+    },
+    { tipo: "select", id: "cita", etiqueta: "Cita", valor: (d) => d.descripcionCita },
+    { tipo: "numero", id: "precio", etiqueta: "Precio (Q)", valor: (d) => d.precioAplicado },
+  ]);
 
   const nuevo = () => {
     setTipo("medicamento");
@@ -117,39 +126,6 @@ function DetalleCitasPage() {
   const editar = (detalle: DetalleCita) => {
     setTipo(detalle.idMedicamento ? "medicamento" : "tratamiento");
     crud.handleModificar(detalle);
-  };
-
-  // Al cambiar de tipo se limpia lo elegido del otro tipo
-  const cambiarTipo = (nuevoTipo: TipoDetalle) => {
-    setTipo(nuevoTipo);
-    crud.setForm((prev) => ({
-      ...prev,
-      idMedicamento: 0,
-      idTratamiento: 0,
-      cantidad: 1,
-      precioAplicado: 0,
-    }));
-  };
-
-  // Al elegir el concepto se propone su precio (se puede editar)
-  const elegirMedicamento = (e: ChangeEvent<HTMLSelectElement>) => {
-    crud.handleChange(e);
-    const elegido = medicamentos.find(
-      (m) => m.idMedicamento === Number(e.target.value),
-    );
-    if (elegido) {
-      crud.setForm((prev) => ({ ...prev, precioAplicado: elegido.precio }));
-    }
-  };
-
-  const elegirTratamiento = (e: ChangeEvent<HTMLSelectElement>) => {
-    crud.handleChange(e);
-    const elegido = tratamientos.find(
-      (t) => t.idTratamiento === Number(e.target.value),
-    );
-    if (elegido) {
-      crud.setForm((prev) => ({ ...prev, precioAplicado: elegido.precio }));
-    }
   };
 
   return (
@@ -168,11 +144,13 @@ function DetalleCitasPage() {
         onNuevo={nuevo}
       />
 
+      <FiltrosTabla estado={filtros} />
+
       <Mensaje texto={crud.mensaje} />
 
       <TablaDatos
         columnas={columnasTabla}
-        datos={filtrarPorTexto(crud.items, busqueda)}
+        datos={filtrarPorTexto(filtros.filtrados, busqueda)}
         claveFila={(d) => d.idDetalleCita}
         acciones={(d) => (
           <AccionesFila
@@ -184,133 +162,21 @@ function DetalleCitasPage() {
         )}
       />
 
-      <ModalFormulario
+      <FormularioDetalle
         abierto={crud.modalAbierto}
-        titulo={crud.modoEdicion ? "MODIFICAR DETALLE" : "NUEVO DETALLE"}
-        subtitulo={
-          crud.modoEdicion
-            ? "Edita el medicamento o tratamiento de la cita:"
-            : "Agrega un medicamento o tratamiento a una cita:"
-        }
-        icono={ClipboardList}
+        modoEdicion={crud.modoEdicion}
         mensaje={crud.mensaje}
+        form={crud.form}
+        setForm={crud.setForm}
+        onChange={crud.handleChange}
         onSubmit={crud.handleSubmit}
         onCerrar={crud.cerrarModal}
-      >
-        <Campo etiqueta="Cita:" className="md:col-span-2">
-          <select
-            name="idCita"
-            value={crud.form.idCita === 0 ? "" : crud.form.idCita}
-            onChange={crud.handleChange}
-            required
-            className={CLASE_SELECT}
-          >
-            <option value="" disabled className="bg-marca-beige-claro">
-              Seleccione la cita...
-            </option>
-            {citas.map((c) => (
-              <option
-                key={c.idCita}
-                value={c.idCita ?? undefined}
-                className="bg-marca-beigeclaro2"
-              >
-                {etiquetaCita(c)}
-              </option>
-            ))}
-          </select>
-        </Campo>
-
-        <Campo etiqueta="Tipo:">
-          <select
-            value={tipo}
-            onChange={(e) => cambiarTipo(e.target.value as TipoDetalle)}
-            className={CLASE_SELECT}
-          >
-            <option value="medicamento">Medicamento</option>
-            <option value="tratamiento">Tratamiento</option>
-          </select>
-        </Campo>
-
-        {tipo === "medicamento" ? (
-          <Campo etiqueta="Medicamento:">
-            <select
-              name="idMedicamento"
-              value={crud.form.idMedicamento || ""}
-              onChange={elegirMedicamento}
-              required
-              className={CLASE_SELECT}
-            >
-              <option value="" disabled className="bg-marca-beige-claro">
-                Seleccione un medicamento...
-              </option>
-              {medicamentos.map((m) => (
-                <option
-                  key={m.idMedicamento}
-                  value={m.idMedicamento ?? undefined}
-                  className="bg-marca-beigeclaro2"
-                >
-                  {m.nombre}
-                </option>
-              ))}
-            </select>
-          </Campo>
-        ) : (
-          <Campo etiqueta="Tratamiento:">
-            <select
-              name="idTratamiento"
-              value={crud.form.idTratamiento || ""}
-              onChange={elegirTratamiento}
-              required
-              className={CLASE_SELECT}
-            >
-              <option value="" disabled className="bg-marca-beige-claro">
-                Seleccione un tratamiento...
-              </option>
-              {tratamientos.map((t) => (
-                <option
-                  key={t.idTratamiento}
-                  value={t.idTratamiento ?? undefined}
-                  className="bg-marca-beigeclaro2"
-                >
-                  {t.nombre}
-                </option>
-              ))}
-            </select>
-          </Campo>
-        )}
-
-        {tipo === "medicamento" && (
-          <Campo etiqueta="Cantidad:">
-            <input
-              type="number"
-              name="cantidad"
-              value={crud.form.cantidad ?? 1}
-              onChange={crud.handleChange}
-              min={1}
-              className={CLASE_INPUT}
-            />
-            {medicamentoElegido && (
-              <p className="mt-1 text-sm font-nunito text-gray-500">
-                Stock disponible: {medicamentoElegido.stock}
-              </p>
-            )}
-          </Campo>
-        )}
-
-        <Campo etiqueta="Precio aplicado (Q):">
-          <input
-            type="number"
-            name="precioAplicado"
-            value={crud.form.precioAplicado === 0 ? "" : crud.form.precioAplicado}
-            onChange={crud.handleChange}
-            min={0.01}
-            step="0.01"
-            required
-            placeholder="0.00"
-            className={CLASE_INPUT}
-          />
-        </Campo>
-      </ModalFormulario>
+        tipo={tipo}
+        onCambiarTipo={setTipo}
+        citas={citas}
+        medicamentos={medicamentos}
+        tratamientos={tratamientos}
+      />
     </div>
   );
 }

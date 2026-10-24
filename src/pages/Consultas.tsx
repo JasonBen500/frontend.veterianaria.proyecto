@@ -1,7 +1,4 @@
-import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
-import axios from "axios";
-import { useSearchParams } from "react-router-dom";
-import Modal from "../components/Modal";
+import { History, Stethoscope, Thermometer, ClipboardList, CalendarDays } from "lucide-react";
 import {
   listarConsultasActivas,
   agregarConsulta,
@@ -9,252 +6,182 @@ import {
   anularConsulta,
 } from "../services/consultaService";
 import { listarCitasActivas } from "../services/citaService";
-import { listarMascotasActivas } from "../services/mascotaService";
-import { History, Stethoscope, Thermometer, ClipboardList } from "lucide-react";
 import type { Consulta } from "../types/consulta";
-import type { Cita } from "../types/cita";
-import type { Mascota } from "../types/mascota";
 import Mensaje from "../components/Mensaje";
 import AccionesFila from "../components/AccionesFilas";
 import TablaDatos, { type ColumnaTabla } from "../components/TablaDatos";
-import { reporteConsultas } from "../utils/reportes";
 import BotonesExportar from "../components/BotonesExportar";
-import { VistaDetallesEntidad } from "../components/DetallesDatos";
-import { formatearFecha } from "../utils/fechas";
-import { filtrarPorTexto } from "../utils/busqueda";
 import EncabezadoPagina from "../components/EncabezadoPagina";
 import BarraListado from "../components/BarraListado";
+import ModalDetalles from "../components/ModalDetalles";
 import ModalFormulario from "../components/formulario/ModalFormulario";
 import Campo from "../components/formulario/Campo";
 import {
   CLASE_INPUT,
   CLASE_SELECT,
 } from "../components/formulario/estilosFormulario";
+import { useState } from "react";
+import { useCrud, type ConfigCrud } from "../hooks/useCrud";
+import { useDetallesUrl } from "../hooks/useDetallesUrl";
+import { useLista } from "../hooks/useLista";
+import { useFiltros } from "../hooks/useFiltros";
+import { formatearFecha } from "../utils/fechas";
+import { reporteConsultas } from "../utils/reportes";
+import { etiquetaCita } from "../utils/citas";
+import { filtrarPorTexto } from "../utils/busqueda";
+import Modal from "../components/Modal";
+import FiltrosTabla from "../components/FiltrosTabla";
+import HojaCliente from "../components/HojaCliente";
 
-const formInicial: Consulta = {
-  idConsulta: null,
-  diagnostico: "",
-  sintomas: "",
-  estado: true,
-  idCita: 0,
+const configConsultas: ConfigCrud<Consulta> = {
+  listar: listarConsultasActivas,
+  agregar: agregarConsulta,
+  modificar: modificarConsulta,
+  anular: anularConsulta,
+  obtenerId: (c) => c.idConsulta,
+  camposNumericos: ["idCita"],
+  vacio: {
+    idConsulta: null,
+    diagnostico: "",
+    sintomas: "",
+    estado: true,
+    idCita: 0,
+  },
+  textos: {
+    creado: "Consulta creada correctamente",
+    actualizado: "Consulta actualizada correctamente",
+    anulado: "Consulta anulada correctamente",
+    confirmarAnular: "¿Seguro que deseas anular esta consulta?",
+    errorListar: "Error al listar consultas",
+  },
 };
 
 function ConsultasPage() {
-  const [consultas, setConsultas] = useState<Consulta[]>([]);
-  const [citas, setCitas] = useState<Cita[]>([]);
-  const [mascotas, setMascotas] = useState<Mascota[]>([]);
-  const [form, setForm] = useState<Consulta>(formInicial);
-  const [modoEdicion, setModoEdicion] = useState(false);
-  const [mensaje, setMensaje] = useState("");
-  const [modalAbierto, setModalAbierto] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [busqueda, setBusqueda] = useState(searchParams.get("buscar") ?? "");
+  const crud = useCrud(configConsultas);
+  const citas = useLista(listarCitasActivas);
+  const detalles = useDetallesUrl();
+  const [busqueda, setBusqueda] = useState(detalles.busquedaInicial);
+  const [idInformeAbierto, setIdInformeAbierto] = useState<number | null>(null);
 
-  // Estados para el modal de detalles
-  const idDesdeUrl = Number(searchParams.get("detalle")) || null;
-  const [modalDetallesAbierto, setModalDetallesAbierto] = useState(idDesdeUrl !== null);
-  const [idDetalleSeleccionado, setIdDetalleSeleccionado] = useState<number | null>(idDesdeUrl);
+  // Datos de la cita de cada consulta (paciente, fecha y médico)
+  const citaDe = (c: Consulta) => citas.find((x) => x.idCita === c.idCita);
 
-  const handleVerDetalles = (id: number) => {
-    setIdDetalleSeleccionado(id);
-    setModalDetallesAbierto(true);
-  };
-
-  const cargarConsultas = async () => {
-    try {
-      const respuesta = await listarConsultasActivas();
-      setConsultas(respuesta.data);
-    } catch (error) {
-      console.error("Error al listar consultas", error);
-    }
-  };
-
-  const cargarCitas = async () => {
-    try {
-      const respuesta = await listarCitasActivas();
-      setCitas(respuesta.data);
-    } catch (error) {
-      console.error("Error al listar citas", error);
-    }
-  };
-
-  const cargarMascotas = async () => {
-    try {
-      const respuesta = await listarMascotasActivas();
-      setMascotas(respuesta.data);
-    } catch (error) {
-      console.error("Error al listar mascotas", error);
-    }
-  };
-
-  useEffect(() => {
-    cargarConsultas();
-    cargarCitas();
-    cargarMascotas();
-  }, []);
-
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: name === "idCita" ? Number(value) : value,
-    }));
-  };
-
-  const obtenerMensajeError = (error: unknown): string => {
-    if (axios.isAxiosError(error)) {
-      return error.response?.data?.mensaje ?? error.message;
-    }
-    if (error instanceof Error) return error.message;
-    return "Ocurrió un error inesperado";
-  };
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    try {
-      if (modoEdicion && form.idConsulta !== null) {
-        await modificarConsulta(form.idConsulta, form);
-        setMensaje("Consulta actualizada correctamente");
-      } else {
-        await agregarConsulta(form);
-        setMensaje("Consulta creada correctamente");
-      }
-      setModalAbierto(false);
-      setForm(formInicial);
-      setModoEdicion(false);
-      cargarConsultas();
-    } catch (error) {
-      setMensaje(obtenerMensajeError(error));
-    }
-  };
-
-  const handleModificar = (consulta: Consulta) => {
-    setForm(consulta);
-    setModoEdicion(true);
-    setMensaje("");
-    setModalAbierto(true);
-  };
-
-  const handleAnular = async (id: number) => {
-    if (!window.confirm("¿Seguro que deseas anular esta consulta?")) return;
-    try {
-      await anularConsulta(id);
-      setMensaje("Consulta anulada correctamente");
-      cargarConsultas();
-    } catch (error) {
-      setMensaje(obtenerMensajeError(error));
-    }
-  };
-
-  const abrirNuevo = () => {
-    setForm(formInicial);
-    setModoEdicion(false);
-    setMensaje("");
-    setModalAbierto(true);
-  };
-
-  const cerrarModal = () => {
-    setModalAbierto(false);
-    setForm(formInicial);
-    setModoEdicion(false);
-    setMensaje("");
-  };
+  const filtros = useFiltros(crud.items, [
+    {
+      tipo: "select",
+      id: "paciente",
+      etiqueta: "Paciente",
+      valor: (c) => citaDe(c)?.nombreMascota,
+    },
+    {
+      tipo: "select",
+      id: "medico",
+      etiqueta: "Médico",
+      valor: (c) => citaDe(c)?.nombreMedico,
+    },
+    {
+      tipo: "fecha",
+      id: "fecha",
+      etiqueta: "Fecha de la cita",
+      valor: (c) => citaDe(c)?.fecha,
+    },
+    {
+      tipo: "select",
+      id: "diagnostico",
+      etiqueta: "Diagnóstico",
+      opciones: ["Con diagnóstico", "Sin diagnóstico"],
+      valor: (c) => (c.diagnostico?.trim() ? "Con diagnóstico" : "Sin diagnóstico"),
+    },
+  ]);
 
   const columnasTabla: ColumnaTabla<Consulta>[] = [
+    {
+      encabezado: "Paciente",
+      valor: (c) => citaDe(c)?.nombreMascota ?? c.descripcionCita ?? "—",
+    },
+    {
+      encabezado: "Fecha de la cita",
+      valor: (c) => {
+        const cita = citaDe(c);
+        return cita ? formatearFecha(cita.fecha) : "—";
+      },
+    },
+    { encabezado: "Médico", valor: (c) => citaDe(c)?.nombreMedico ?? "—" },
     { encabezado: "Diagnóstico", valor: (c) => c.diagnostico },
     { encabezado: "Síntomas", valor: (c) => c.sintomas },
-    { encabezado: "Cita Asociada", valor: (c) => c.descripcionCita ?? `Cita #${c.idCita}` },
   ];
 
   return (
     <div className="p-6 max-w-6xl mx-auto mb-4">
-      {/* HEADER SUPERIOR */}
       <EncabezadoPagina
         titulo="Historial de Consultas"
         ruta="/consultas"
         icono={History}
       />
 
-      {/* TARJETA UNIFICADA DE CONTROLES DE TABLA */}
       <BarraListado
         titulo="Listado de Consultas"
-        exportar={<BotonesExportar {...reporteConsultas} datos={consultas} />}
+        exportar={<BotonesExportar {...reporteConsultas} datos={crud.items} />}
         busqueda={busqueda}
         onBuscar={setBusqueda}
         placeholder="Buscar por diagnóstico, síntomas o cita..."
         textoBoton="Nueva Consulta"
-        onNuevo={abrirNuevo}
+        onNuevo={crud.abrirNuevo}
       />
 
-      <Mensaje texto={mensaje} />
+      <FiltrosTabla estado={filtros} />
 
-      {/* TABLA DE DATOS UNIFICADA */}
+      <Mensaje texto={crud.mensaje} />
+
       <TablaDatos
         columnas={columnasTabla}
-        datos={filtrarPorTexto(consultas, busqueda)}
+        datos={filtrarPorTexto(filtros.filtrados, busqueda)}
         claveFila={(c) => c.idConsulta}
         acciones={(c) => (
           <AccionesFila
-            onVerDetalles={() => handleVerDetalles(c.idConsulta!)}
-            onEditar={() => handleModificar(c)}
-            onAnular={() => c.idConsulta !== null && handleAnular(c.idConsulta)}
+            onVerDetalles={() => detalles.ver(c.idConsulta!)}
+            onVerInforme={() => setIdInformeAbierto(c.idCita)}
+            onEditar={() => crud.handleModificar(c)}
+            onAnular={() =>
+              c.idConsulta !== null && crud.handleAnular(c.idConsulta)
+            }
           />
         )}
       />
 
-      {/* MODAL DEL FORMULARIO DE CONSULTAS */}
-      {/* MODAL DEL FORMULARIO DE CONSULTAS */}
       <ModalFormulario
-        abierto={modalAbierto}
-        titulo={modoEdicion ? "MODIFICAR CONSULTA" : "NUEVA CONSULTA"}
+        abierto={crud.modalAbierto}
+        titulo={crud.modoEdicion ? "MODIFICAR CONSULTA" : "NUEVA CONSULTA"}
         subtitulo={
-          modoEdicion
+          crud.modoEdicion
             ? "Edita la información de la consulta:"
             : "Ingresa los datos de la nueva consulta médica:"
         }
         icono={Stethoscope}
-        mensaje={mensaje}
-        onSubmit={handleSubmit}
-        onCerrar={cerrarModal}
+        mensaje={crud.mensaje}
+        onSubmit={crud.handleSubmit}
+        onCerrar={crud.cerrarModal}
       >
-        {/* COMBOBOX DE CITA CON CRUCE DE MASCOTA */}
         <Campo etiqueta="Cita Asociada:" className="md:col-span-2">
           <select
             name="idCita"
-            value={form.idCita === 0 ? "" : form.idCita}
-            onChange={handleChange}
+            value={crud.form.idCita === 0 ? "" : crud.form.idCita}
+            onChange={crud.handleChange}
             required
             className={CLASE_SELECT}
           >
             <option value="" disabled className="bg-marca-beige-claro">
               Seleccione la cita correspondiente...
             </option>
-            {citas.map((c: any) => {
-              let nombreMascota =
-                c.nombreMascota || c.nombre_mascota || c.mascota?.nombre;
-
-              if (!nombreMascota && c.idMascota) {
-                const mascotaEncontrada = mascotas.find(
-                  (m: any) => String(m.idMascota) === String(c.idMascota),
-                );
-                nombreMascota = mascotaEncontrada?.nombre;
-              }
-              const textoFinal =
-                nombreMascota || `Mascota ID: ${c.idMascota ?? "N/A"}`;
-
-              return (
-                <option
-                  key={c.idCita}
-                  value={c.idCita ?? undefined}
-                  className="bg-marca-beigeclaro2"
-                >
-                  Cita #{c.idCita} - Paciente: {textoFinal} (
-                  {formatearFecha(c.fecha)})
-                </option>
-              );
-            })}
+            {citas.map((c) => (
+              <option
+                key={c.idCita}
+                value={c.idCita ?? undefined}
+                className="bg-marca-beigeclaro2"
+              >
+                {etiquetaCita(c)}
+              </option>
+            ))}
           </select>
         </Campo>
 
@@ -265,8 +192,8 @@ function ConsultasPage() {
         >
           <textarea
             name="sintomas"
-            value={form.sintomas}
-            onChange={handleChange}
+            value={crud.form.sintomas}
+            onChange={crud.handleChange}
             rows={3}
             placeholder="Ej. Fiebre alta, decaimiento..."
             className={CLASE_INPUT}
@@ -280,8 +207,8 @@ function ConsultasPage() {
         >
           <textarea
             name="diagnostico"
-            value={form.diagnostico}
-            onChange={handleChange}
+            value={crud.form.diagnostico}
+            onChange={crud.handleChange}
             rows={3}
             placeholder="Ej. Infección respiratoria, aplicar tratamiento..."
             className={CLASE_INPUT}
@@ -289,26 +216,27 @@ function ConsultasPage() {
         </Campo>
       </ModalFormulario>
 
-      {/* MODAL DE DETALLES */}
-      <Modal
-        abierto={modalDetallesAbierto}
-        titulo="Detalles de la Consulta"
-        subtitulo="Información médica completa"
+      <ModalDetalles
+        abierto={detalles.abierto}
+        id={detalles.id}
+        entity="consultas"
+        configReporte={reporteConsultas}
         icono={Stethoscope}
-        onCerrar={() => {
-          setModalDetallesAbierto(false);
-          setSearchParams({}, { replace: true });
-        }}
+        subtitulo="Información médica completa"
+        onCerrar={detalles.cerrar}
+      />
+
+      <Modal
+        abierto={idInformeAbierto !== null}
+        titulo="Informe de la cita"
+        subtitulo="Resumen de la atención"
+        icono={CalendarDays}
+        onCerrar={() => setIdInformeAbierto(null)}
       >
-        {idDetalleSeleccionado && (
-          <VistaDetallesEntidad
-            entity="detallecita"
-            id={idDetalleSeleccionado}
-            configReporte={reporteConsultas}
-          />
+        {idInformeAbierto !== null && (
+          <HojaCliente key={idInformeAbierto} idCita={idInformeAbierto} />
         )}
       </Modal>
-
     </div>
   );
 }

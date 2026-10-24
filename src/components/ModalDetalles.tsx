@@ -1,4 +1,4 @@
-import type { ElementType } from "react";
+import type { ElementType, ReactNode } from "react";
 import Modal from "./Modal";
 import {
   VistaDetallesEntidad,
@@ -13,9 +13,9 @@ interface Props {
   icono: ElementType;
   subtitulo: string;
   onCerrar: () => void;
+  acciones?: ReactNode;
 }
 
-// Modal "Detalles del Registro" (usado por Dueños, Mascotas, ...)
 function ModalDetalles({
   abierto,
   id,
@@ -24,6 +24,7 @@ function ModalDetalles({
   icono,
   subtitulo,
   onCerrar,
+  acciones,
 }: Props) {
   return (
     <Modal
@@ -33,12 +34,19 @@ function ModalDetalles({
       icono={icono}
       onCerrar={onCerrar}
     >
+      
       {id && (
         <VistaDetallesEntidad
           entity={entity}
           id={id}
           configReporte={configReporte}
         />
+      )}
+      
+      {id && acciones && (
+        <div className="mt-6 flex justify-end border-t border-marca-oscuro/10 pt-4">
+          {acciones}
+        </div>
       )}
     </Modal>
   );

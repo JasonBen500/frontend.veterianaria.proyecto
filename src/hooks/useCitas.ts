@@ -37,16 +37,20 @@ export const citaVacia: Cita = {
 const CAMPOS_NUMERICOS = ["idMascota", "idMedico", "idUsuario"];
 
 // Toda la lógica de datos y del CRUD de citas vive aquí; la página solo dibuja
-export function useCitas() {
+// "inicial": si viene (por ejemplo desde "Iniciar cita" en Mascotas), abre el
+// formulario de nueva cita con esa mascota ya elegida
+export function useCitas(inicial: { mascota?: number } | null = null) {
   const [citas, setCitas] = useState<Cita[]>([]);
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [mascotas, setMascotas] = useState<Mascota[]>([]);
   const [medicos, setMedicos] = useState<Medico[]>([]);
   const [usuarios, setUsuarios] = useState<Usuarios[]>([]);
 
-  const [form, setForm] = useState<Cita>(citaVacia);
+  const [form, setForm] = useState<Cita>(
+    inicial ? { ...citaVacia, idMascota: inicial.mascota ?? 0 } : citaVacia,
+  );
   const [modoEdicion, setModoEdicion] = useState(false);
-  const [modalAbierto, setModalAbierto] = useState(false);
+  const [modalAbierto, setModalAbierto] = useState(inicial !== null);
   const [mensaje, setMensaje] = useState("");
 
   const cargarCitas = useCallback(async () => {
@@ -103,8 +107,8 @@ export function useCitas() {
     }));
   };
 
-  const abrirNuevo = () => {
-    setForm(citaVacia);
+  const abrirNuevo = (idMascota?: number) => {
+    setForm({ ...citaVacia, idMascota: idMascota ?? 0 });
     setModoEdicion(false);
     setMensaje("");
     setModalAbierto(true);

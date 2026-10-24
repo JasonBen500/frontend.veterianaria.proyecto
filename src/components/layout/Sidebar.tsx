@@ -220,7 +220,7 @@ function Sidebar() {
   return (
     <aside
       className={cx(
-        "sticky top-0 flex shrink-0 flex-col overflow-hidden bg-marca-oscuro text-white shadow-lg shadow-marca-azulmarino/30 transition-[width] duration-200",
+        "sticky top-0 flex shrink-0 flex-col overflow-hidden bg-marca- text-white bg-marca-azulmarino shadow-lg shadow-marca-azulmarino/30 transition-[width] duration-200",
         abierto
           ? "h-screen w-72"
           : "m-3 h-[calc(100vh-1.5rem)] w-[4.5rem] rounded-3xl",

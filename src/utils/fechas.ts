@@ -30,3 +30,26 @@ export const formatearFecha = (fecha: string) => {
   const nombreMes = NOMBRES_MESES[Number(mes) - 1].slice(0, 3).toLowerCase();
   return `${Number(dia)} ${nombreMes} ${anio}`;
 };
+
+// "2026-10-23T15:30:00..." -> "23 oct 2026, 03:30 p. m."
+export const fechaHora = (fecha: string) =>
+  new Date(fecha).toLocaleString("es-GT", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+// "2026-10-20T14:30..." -> "14:30"
+export const formatearHora = (fecha: string) => {
+  const d = new Date(fecha);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" });
+};
+
+// "20 oct 2026 · 14:30"
+export const formatearFechaHora = (fecha: string) => {
+  const hora = formatearHora(fecha);
+  return hora ? `${formatearFecha(fecha)} · ${hora}` : formatearFecha(fecha);
+};

@@ -45,7 +45,7 @@ function EncabezadoPagina({ titulo, ruta, padres = [], icono }: Props) {
   const Icono = icono ?? ICONOS_POR_RUTA[ruta] ?? PawPrint;
 
   return (
-    <div className="relative flex min-h-8 items-center justify-between gap-4 overflow-hidden rounded-3xl border border-marca-oscuro/10 bg-marca-oscuro p-6 shadow-lg shadow-marca-cafenigga/15">
+    <div className="relative flex min-h-8 items-center justify-between gap-4 overflow-hidden rounded-3xl border border-marca-oscuro/10 bg-marca-oscuro p-6 shadow-xl shadow-marca-cafenigga/15">
       <PawPrint
         aria-hidden="true"
         className="pointer-events-none absolute -right-4 -top-8 h-40 w-40 rotate-12 text-white/5"

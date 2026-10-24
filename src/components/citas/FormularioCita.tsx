@@ -38,7 +38,7 @@ function FormularioCita({
   onSubmit,
   onCerrar,
 }: Props) {
-   return (
+  return (
     <ModalFormulario
       abierto={abierto}
       titulo={modoEdicion ? "MODIFICAR CITA" : "NUEVA CITA"}
@@ -88,7 +88,7 @@ function FormularioCita({
               value={m.idMascota ?? undefined}
               className="bg-marca-beigeclaro2"
             >
-              {m.idMascota}. {m.nombre}
+              {m.nombre}
             </option>
           ))}
         </select>
@@ -110,7 +110,7 @@ function FormularioCita({
               value={m.idMedico ?? undefined}
               className="bg-marca-beigeclaro2"
             >
-              {m.idMedico}. {m.nombre} {m.apellido}
+              {m.nombre} {m.apellido}
             </option>
           ))}
         </select>
@@ -132,7 +132,7 @@ function FormularioCita({
               value={u.idUsuario ?? undefined}
               className="bg-marca-beigeclaro2"
             >
-              {u.idUsuario}. {u.nombre}
+              {u.nombre}
             </option>
           ))}
         </select>

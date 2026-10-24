@@ -23,6 +23,8 @@ interface Props {
   abierto: boolean;
   onCerrar: () => void;
   onFinalizado?: () => void;
+  idMascota?: number | null;
+  idDueno?: number | null;
 }
 
 const formInicial: Consulta = {
@@ -41,12 +43,20 @@ const obtenerMensajeError = (err: unknown): string => {
   return "Ocurrió un error inesperado";
 };
 
-function ModalConsulta({ abierto, onCerrar, onFinalizado }: Props) {
+function ModalConsulta({
+  abierto,
+  onCerrar,
+  onFinalizado,
+  idMascota = null,
+  idDueno = null,
+}: Props) {
   const [form, setForm] = useState<Consulta>(formInicial);
   const [citas, setCitas] = useState<Cita[]>([]);
   const [mascotas, setMascotas] = useState<Mascota[]>([]);
   const [consultas, setConsultas] = useState<Consulta[]>([]);
-  const [paso, setPaso] = useState<1 | 2 | 3>(1);
+  const [paso, setPaso] = useState<1 | 2>(1);
+  const [lineasTrat, setLineasTrat] = useState<LineaTratamiento[]>([]);
+  const [lineasMed, setLineasMed] = useState<LineaMedicamento[]>([]);
   const [idCitaAtendiendo, setIdCitaAtendiendo] = useState<number | null>(null);
   const [mensaje, setMensaje] = useState("");
 
@@ -77,11 +87,41 @@ function ModalConsulta({ abierto, onCerrar, onFinalizado }: Props) {
     (c) => c.idCita !== null && !citasAtendidas.has(c.idCita),
   );
 
+  // Si se abre desde una mascota o un dueño, solo se muestran sus citas pendientes
+  const idsMascotasDelDueno = new Set(
+    mascotas.filter((m) => m.idDueno === idDueno).map((m) => m.idMascota),
+  );
+  const citasMostradas = citasPendientes
+    .filter((c) => {
+      if (idMascota !== null) return c.idMascota === idMascota;
+      if (idDueno !== null) return idsMascotasDelDueno.has(c.idMascota);
+      return true;
+    })
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const vieneDeRegistro = idMascota !== null || idDueno !== null;
+
+  // Se elige sola la cita pendiente más antigua; el usuario puede cambiarla
+  const idCitaElegida =
+    form.idCita !== 0
+      ? form.idCita
+      : vieneDeRegistro && citasMostradas.length > 0
+        ? (citasMostradas[0].idCita ?? 0)
+        : 0;
+
+  const pacienteSeleccionado =
+    idMascota !== null
+      ? mascotas.find((m) => m.idMascota === idMascota)?.nombre
+      : idDueno !== null
+        ? mascotas.find((m) => m.idDueno === idDueno)?.nombreDueno
+        : undefined;
+
   const cerrar = () => {
     if (idCitaAtendiendo !== null) onFinalizado?.();
     setForm(formInicial);
     setPaso(1);
     setIdCitaAtendiendo(null);
+    setLineasTrat([]);
+    setLineasMed([]);
     setMensaje("");
     onCerrar();
   };
@@ -99,57 +139,46 @@ function ModalConsulta({ abierto, onCerrar, onFinalizado }: Props) {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const { idConsulta: _sinUsar, ...datosConsulta } = form;
-      await agregarConsulta(datosConsulta);
-      setIdCitaAtendiendo(form.idCita);
-      setPaso(2);
-      setMensaje("");
-    } catch (err) {
-      setMensaje(obtenerMensajeError(err));
-    }
-  };
+      // Si ya se guardó la consulta y falló algo después, no se vuelve a crear
+      if (idCitaAtendiendo === null) {
+        const { idConsulta: _sinUsar, ...datosConsulta } = form;
+        await agregarConsulta({ ...datosConsulta, idCita: idCitaElegida });
+        setIdCitaAtendiendo(idCitaElegida);
+      }
+      const idCita = idCitaAtendiendo ?? idCitaElegida;
 
-  const guardarDetalles = async (
-    tratamientos: LineaTratamiento[],
-    medicamentos: LineaMedicamento[],
-  ) => {
-    if (idCitaAtendiendo === null) return;
-    try {
-      for (const t of tratamientos) {
+      for (const t of lineasTrat) {
         await agregarDetalleCita({
           precioAplicado: t.precio,
           estado: true,
-          idCita: idCitaAtendiendo,
+          idCita,
           idTratamiento: t.idTratamiento,
           cantidad: 1,
         } as Omit<DetalleCita, "idDetalleCita">);
       }
 
-      for (const m of medicamentos) {
+      for (const m of lineasMed) {
         await agregarDetalleCita({
           precioAplicado: m.precio,
           estado: true,
-          idCita: idCitaAtendiendo,
+          idCita,
           idMedicamento: m.idMedicamento,
           cantidad: m.cantidad,
         } as Omit<DetalleCita, "idDetalleCita">);
       }
 
       const total =
-        tratamientos.reduce((suma, l) => suma + l.precio, 0) +
-        medicamentos.reduce((suma, l) => suma + l.precio * l.cantidad, 0);
+        lineasTrat.reduce((suma, l) => suma + l.precio, 0) +
+        lineasMed.reduce((suma, l) => suma + l.precio * l.cantidad, 0);
 
-      const cita = citas.find((c) => c.idCita === idCitaAtendiendo);
+      const cita = citas.find((c) => c.idCita === idCita);
       if (cita && total > 0) {
         const { idCita: _sinUsar, ...resto } = cita;
-        await modificarCita(idCitaAtendiendo, {
-          ...resto,
-          total: Math.round(total),
-        });
+        await modificarCita(idCita, { ...resto, total: Math.round(total) });
       }
 
       setMensaje("");
-      setPaso(3);
+      setPaso(2);
     } catch (err) {
       setMensaje(obtenerMensajeError(err));
     }
@@ -158,19 +187,11 @@ function ModalConsulta({ abierto, onCerrar, onFinalizado }: Props) {
   return (
     <Modal
       abierto={abierto}
-      titulo={
-        paso === 1
-          ? "INICIAR CONSULTA MÉDICA"
-          : paso === 2
-            ? "TRATAMIENTOS Y MEDICAMENTOS"
-            : "INFORME DE LA CITA"
-      }
+      titulo={paso === 1 ? "INICIAR CONSULTA MÉDICA" : "INFORME DE LA CITA"}
       subtitulo={
         paso === 1
-          ? "Ingresa los datos clínicos de la mascota:"
-          : paso === 2
-            ? "Registra lo aplicado en la consulta (opcional):"
-            : "Resumen listo para entregar al cliente:"
+          ? "Ingresa los datos clínicos y lo aplicado a la mascota:"
+          : "Resumen listo para entregar al cliente:"
       }
       icono={Stethoscope}
       onCerrar={cerrar}
@@ -179,38 +200,45 @@ function ModalConsulta({ abierto, onCerrar, onFinalizado }: Props) {
         <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-1 gap-4">
           <Mensaje texto={mensaje} />
 
+          {pacienteSeleccionado && (
+            <p className="rounded-2xl bg-marca-verde/20 px-4 py-2 font-nunito text-sm font-bold text-marca-oscuro">
+              {idMascota !== null ? "Mascota" : "Dueño"}: {pacienteSeleccionado}
+            </p>
+          )}
+
           <div>
             <label className="mb-2 block font-nunito text-lg font-semibold text-gray-700">
               Cita Asociada:
             </label>
             <select
               name="idCita"
-              value={form.idCita === 0 ? "" : form.idCita}
+              value={idCitaElegida === 0 ? "" : idCitaElegida}
               onChange={handleChange}
               required
               className="w-full rounded-xl border border-cafenigga bg-beigeclaro2 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
               <option value="" disabled>
-                {citasPendientes.length === 0
-                  ? "No hay citas pendientes de atender"
+                {citasMostradas.length === 0
+                  ? vieneDeRegistro
+                    ? "Sin citas pendientes para este registro"
+                    : "No hay citas pendientes de atender"
                   : "Seleccione la cita para esta consulta..."}
               </option>
-              {citasPendientes.map((c) => {
+              {citasMostradas.map((c) => {
                 const mascotaEncontrada = mascotas.find(
                   (m) => m.idMascota === c.idMascota,
                 );
                 const nombreMostrar =
                   c.nombreMascota ||
                   mascotaEncontrada?.nombre ||
-                  `ID Desconocido (${c.idMascota})`;
+                  "Paciente sin nombre";
                 return (
                   <option
                     key={c.idCita}
                     value={c.idCita ?? undefined}
                     className="bg-marca-beigeclaro2"
                   >
-                    Cita #{c.idCita} - Paciente: {nombreMostrar} (
-                    {formatearFecha(c.fecha)})
+                    {nombreMostrar} · {formatearFecha(c.fecha)}
                   </option>
                 );
               })}
@@ -245,6 +273,16 @@ function ModalConsulta({ abierto, onCerrar, onFinalizado }: Props) {
             />
           </div>
 
+          <div className="col-span-full">
+            <PasoTratamiento
+              embebido
+              onCambio={(t, m) => {
+                setLineasTrat(t);
+                setLineasMed(m);
+              }}
+            />
+          </div>
+
           <div className="col-span-full mt-4 flex justify-end gap-3 border-t border-gray-100 pt-4">
             <button
               type="button"
@@ -257,24 +295,13 @@ function ModalConsulta({ abierto, onCerrar, onFinalizado }: Props) {
               type="submit"
               className="rounded-full bg-marca-oscuro px-6 py-2 font-nunito font-bold text-white transition hover:bg-marca-oscuro/90"
             >
-              Guardar y continuar
+              Guardar y ver informe
             </button>
           </div>
         </form>
       )}
 
-      {paso === 2 && (
-        <div className="mt-4">
-          <Mensaje texto={mensaje} />
-          <PasoTratamiento
-            encabezado="Paso 2 de 3"
-            textoConfirmar="Guardar y ver informe"
-            onConfirmar={guardarDetalles}
-          />
-        </div>
-      )}
-
-      {paso === 3 && idCitaAtendiendo !== null && (
+      {paso === 2 && idCitaAtendiendo !== null && (
         <div className="mt-4">
           <HojaCliente key={idCitaAtendiendo} idCita={idCitaAtendiendo} />
           <div className="mt-4 flex justify-end">

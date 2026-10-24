@@ -1,58 +1,94 @@
 import type { ReactNode } from "react";
+import {
+    Ban,
+    Banknote,
+    Cake,
+    CalendarDays,
+    CalendarHeart,
+    CircleCheck,
+    ClipboardList,
+    Dog,
+    MapPin,
+    PawPrint,
+    Phone,
+    Pill,
+    Stethoscope,
+    Syringe,
+    User,
+    UserCog,
+    UserRound,
+    Weight,
+    Thermometer,
+    type LucideIcon,
+} from "lucide-react";
 import { useDatosDetalle } from "../hooks/useDetalleRegistro";
+import { formatearFecha } from "../utils/fechas";
 import BotonesExportar from "./BotonesExportar";
 
 export type CampoDetalle = {
     etiqueta: string;
+    icono?: LucideIcon;
     clave?: string;
     formatear?: (registro: any) => ReactNode;
 };
 
 const renderBadgeEstado = (estado: boolean, textoTrue: string, textoFalse: string) => {
     return estado ? (
-        <span className="text-green-700 bg-green-100 px-2.5 py-1 rounded-md text-sm font-bold">{textoTrue}</span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-marca-verde/30 px-3 py-1 text-sm font-extrabold text-marca-oscuro">
+            <CircleCheck size={14} />
+            {textoTrue}
+        </span>
     ) : (
-        <span className="text-red-700 bg-red-100 px-2.5 py-1 rounded-md text-sm font-bold">{textoFalse}</span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-marca-vino/15 px-3 py-1 text-sm font-extrabold text-marca-vino">
+            <Ban size={14} />
+            {textoFalse}
+        </span>
     );
 };
 
 const CONFIGURACIONES: Record<string, CampoDetalle[]> = {
     mascotas: [
-        { etiqueta: "Nombre", clave: "nombre" },
-        { etiqueta: "Especie", clave: "especie", formatear: (r) => <span className="capitalize">{r.especie}</span> },
-        { etiqueta: "Edad", formatear: (r) => `${r.edad} años` },
-        { etiqueta: "Peso", formatear: (r) => `${r.peso} kg` },
-        { etiqueta: "Dueño", formatear: (r) => r.nombreDueno ? `${r.idDueno}. ${r.nombreDueno}` : `ID: ${r.idDueno}` },
-        { etiqueta: "Estado", formatear: (r) => renderBadgeEstado(r.estado, "Activo", "Inactivo") },
+        { etiqueta: "Nombre", icono: PawPrint, clave: "nombre" },
+        { etiqueta: "Especie", icono: Dog, clave: "especie", formatear: (r) => <span className="capitalize">{r.especie}</span> },
+        { etiqueta: "Edad", icono: Cake, formatear: (r) => `${r.edad} meses` },
+        { etiqueta: "Peso", icono: Weight, formatear: (r) => `${r.peso} kg` },
+        { etiqueta: "Dueño", icono: UserRound, formatear: (r) => r.nombreDueno || "—" },
+        { etiqueta: "Estado", icono: CircleCheck, formatear: (r) => renderBadgeEstado(r.estado, "Activo", "Inactivo") },
     ],
     duenos: [
-        { etiqueta: "Nombre Completo", formatear: (r) => `${r.idDueno}. ${r.nombre} ${r.apellido}` },
-        { etiqueta: "Teléfono", clave: "telefono" },
-        { etiqueta: "Dirección", clave: "direccion" },
-        { etiqueta: "Estado", formatear: (r) => renderBadgeEstado(r.estado, "Activo", "Inactivo") },
+        { etiqueta: "Nombre Completo", icono: User, formatear: (r) => `${r.nombre} ${r.apellido}` },
+        { etiqueta: "Teléfono", icono: Phone, clave: "telefono" },
+        { etiqueta: "Dirección", icono: MapPin, clave: "direccion" },
+        { etiqueta: "Estado", icono: CircleCheck, formatear: (r) => renderBadgeEstado(r.estado, "Activo", "Inactivo") },
     ],
     citas: [
-        { etiqueta: "Fecha", formatear: (r) => new Date(r.fecha).toLocaleDateString() },
-        { etiqueta: "Total", formatear: (r) => `Q ${Number(r.total).toFixed(2)}` },
-        { etiqueta: "Motivo", clave: "motivo" },
-        { etiqueta: "Paciente", formatear: (r) => r.nombreMascota || `ID: ${r.idMascota}` },
-        { etiqueta: "Médico", formatear: (r) => r.nombreMedico || `ID: ${r.idMedico}` },
-        { etiqueta: "Usuario", formatear: (r) => r.nombreUsuario || `ID: ${r.idUsuario}` },
-        { etiqueta: "Estado", formatear: (r) => renderBadgeEstado(r.estado, "Completada", "Pendiente / Cancelada") },
+        { etiqueta: "Fecha", icono: CalendarDays, formatear: (r) => formatearFecha(r.fecha) },
+        { etiqueta: "Total", icono: Banknote, formatear: (r) => `Q ${Number(r.total).toFixed(2)}` },
+        { etiqueta: "Motivo", icono: ClipboardList, clave: "motivo" },
+        { etiqueta: "Paciente", icono: PawPrint, formatear: (r) => r.nombreMascota || "—" },
+        { etiqueta: "Médico", icono: Stethoscope, formatear: (r) => r.nombreMedico || "—" },
+        { etiqueta: "Usuario", icono: UserCog, formatear: (r) => r.nombreUsuario || "—" },
+        { etiqueta: "Estado", icono: CircleCheck, formatear: (r) => renderBadgeEstado(r.estado, "Activa", "Anulada") },
     ],
     detallecita: [
-        { etiqueta: "Cita Asociada", formatear: (r) => r.descripcionCita || `Cita #${r.idCita}` },
-        { etiqueta: "Precio Aplicado", formatear: (r) => `Q ${Number(r.precioAplicado).toFixed(2)}` },
-        { etiqueta: "Tratamiento", formatear: (r) => r.nombreTratamiento || (r.idTratamiento ? `ID: ${r.idTratamiento}` : "N/A") },
-        { etiqueta: "Medicamento", formatear: (r) => r.nombreMedicamento || (r.idMedicamento ? `ID: ${r.idMedicamento}` : "N/A") },
-        { etiqueta: "Estado", formatear: (r) => renderBadgeEstado(r.estado, "Activo", "Inactivo") },
+        { etiqueta: "Cita Asociada", icono: CalendarHeart, formatear: (r) => r.descripcionCita || "—" },
+        { etiqueta: "Precio Aplicado", icono: Banknote, formatear: (r) => `Q ${Number(r.precioAplicado).toFixed(2)}` },
+        { etiqueta: "Tratamiento", icono: Syringe, formatear: (r) => r.nombreTratamiento || "N/A" },
+        { etiqueta: "Medicamento", icono: Pill, formatear: (r) => r.nombreMedicamento || "N/A" },
+        { etiqueta: "Estado", icono: CircleCheck, formatear: (r) => renderBadgeEstado(r.estado, "Activo", "Inactivo") },
+    ],
+    consultas: [
+        { etiqueta: "Cita Asociada", icono: CalendarHeart, formatear: (r) => r.descripcionCita || "—" },
+        { etiqueta: "Síntomas", icono: Thermometer, clave: "sintomas" },
+        { etiqueta: "Diagnóstico", icono: ClipboardList, clave: "diagnostico" },
+        { etiqueta: "Estado", icono: CircleCheck, formatear: (r) => renderBadgeEstado(r.estado, "Activa", "Anulada") },
     ],
 };
 
 
 // COMPONENTE PRINCIPAL
 export interface VistaDetallesProps {
-    entity: "mascotas" | "duenos" | "citas" | "detallecita";
+    entity: "mascotas" | "duenos" | "citas" | "detallecita" | "consultas";
     id: number;
     configReporte?: any;
 }
@@ -65,6 +101,7 @@ export const VistaDetallesEntidad = ({ entity, id, configReporte }: VistaDetalle
             case "mascotas": return datos.mascotas[0];
             case "duenos": return datos.duenos[0];
             case "citas": return datos.citas[0];
+            case "consultas": return datos.consultas[0];
             case "detallecita": return datos.detalleCita[0];
             default: return null;
         }
@@ -73,36 +110,68 @@ export const VistaDetallesEntidad = ({ entity, id, configReporte }: VistaDetalle
     const registro = obtenerRegistro();
     const configuracion = CONFIGURACIONES[entity];
 
-    if (loading) return <div className="p-4 text-marca-oscuro font-bold animate-pulse text-center">Cargando información...</div>;
-    if (error) return <div className="p-4 text-red-500 font-bold bg-red-50 rounded-lg text-center">{error}</div>;
-    if (!registro) return <div className="p-4 text-gray-500 text-center">No se encontraron datos para este registro.</div>;
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center gap-2 p-6 text-center font-nunito font-bold text-marca-oscuro">
+                <PawPrint size={20} className="animate-pulse" />
+                Cargando información...
+            </div>
+        );
+    }
+    if (error) {
+        return (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-center font-nunito font-bold text-red-700">
+                {error}
+            </div>
+        );
+    }
+    if (!registro) {
+        return (
+            <div className="flex flex-col items-center gap-2 p-6 text-center">
+                <Dog size={40} className="text-marca-verde" />
+                <p className="font-nunito text-sm font-bold text-marca-oscuro/60">
+                    No se encontraron datos para este registro.
+                </p>
+            </div>
+        );
+    }
 
     // DISEÑO HTML
     return (
-        <div className="space-y-4">
-
-            {/* Contenedor de la información */}
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 bg-white p-6 rounded-xl border border-marca-oscuro/5">
+        <div className="space-y-5">
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {configuracion.map((campo, index) => {
-
+                    const Icono = campo.icono ?? PawPrint;
                     const valorFinal = campo.formatear ? campo.formatear(registro) : (registro as Record<string, any>)[campo.clave!];
 
                     return (
-                        <div key={index} className="border-b border-gray-100 pb-3 last:border-0 sm:last:border-0">
-                            <dt className="text-sm font-bold text-marca-oscuro/60 mb-1">
-                                {campo.etiqueta}
-                            </dt>
-                            <dd className="font-nunito text-base text-marca-oscuro font-medium">
-                                {valorFinal !== null && valorFinal !== undefined && valorFinal !== ""
-                                    ? valorFinal
-                                    : <span className="text-gray-400 italic">No registrado</span>}
-                            </dd>
+                        <div
+                            key={index}
+                            className="flex items-start gap-3 rounded-2xl border border-marca-oscuro/10 bg-white p-4 shadow-sm"
+                        >
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-marca-naranja/30 text-marca-oscuro">
+                                <Icono size={20} />
+                            </div>
+                            <div className="min-w-0">
+                                <dt className="font-nunito text-xs font-extrabold uppercase tracking-wide text-marca-oscuro/60">
+                                    {campo.etiqueta}
+                                </dt>
+                                <dd className="mt-0.5 break-words font-nunito text-base font-bold text-marca-oscuro">
+                                    {valorFinal !== null && valorFinal !== undefined && valorFinal !== ""
+                                        ? valorFinal
+                                        : <span className="font-medium italic text-marca-oscuro/40">No registrado</span>}
+                                </dd>
+                            </div>
                         </div>
                     );
                 })}
             </dl>
-             {configReporte && (
-                <div className="flex justify-end border-b border-gray-100 pb-3 mt-5">
+
+            {configReporte && (
+                <div className="flex items-center justify-end gap-3 border-t border-marca-oscuro/10 pt-4">
+                    <span className="font-nunito text-sm font-bold text-marca-cafenigga">
+                        Exportar:
+                    </span>
                     <BotonesExportar {...configReporte} datos={[registro]} />
                 </div>
             )}

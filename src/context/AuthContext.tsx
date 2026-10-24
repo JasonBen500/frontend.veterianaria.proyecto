@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import type { LoginResponse } from "../types/auth";
+import { borrarSesion, guardarSesion, leerSesion } from "../utils/sesion";
 
 interface AuthContextType {
   usuario: LoginResponse | null;
@@ -21,18 +22,15 @@ const normalizar = (texto: string | undefined | null) =>
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [usuario, setUsuario] = useState<LoginResponse | null>(() => {
-    const guardado = localStorage.getItem("usuario");
-    return guardado ? JSON.parse(guardado) : null;
-  });
+  const [usuario, setUsuario] = useState<LoginResponse | null>(leerSesion);
 
   const iniciarSesion = (data: LoginResponse) => {
-    localStorage.setItem("usuario", JSON.stringify(data));
+    guardarSesion(data);
     setUsuario(data);
   };
 
   const cerrarSesion = () => {
-    localStorage.removeItem("usuario");
+    borrarSesion();
     setUsuario(null);
   };
 

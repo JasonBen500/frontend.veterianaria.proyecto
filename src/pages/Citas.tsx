@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { CalendarDays } from "lucide-react";
 import TablaDatos, { type ColumnaTabla } from "../components/TablaDatos";
 import Mensaje from "../components/Mensaje";
@@ -12,7 +12,10 @@ import { VistaDetallesEntidad } from "../components/DetallesDatos";
 import PanelEstadisticasCitas from "../components/citas/PanelEstadisticasCitas";
 import BloqueSuperiorCitas from "../components/citas/BloqueSuperiorCitas";
 import FormularioCita from "../components/citas/FormularioCita";
+import FiltrosTabla from "../components/FiltrosTabla";
+import { useAuth } from "../context/AuthContext";
 import { useCitas } from "../hooks/useCitas";
+import { useFiltros } from "../hooks/useFiltros";
 import { useDatosInicio } from "../hooks/useDatosInicio";
 import { calcularContadores } from "../utils/contadores";
 import { formatearFecha } from "../utils/fechas";
@@ -26,11 +29,11 @@ const columnasTabla: ColumnaTabla<Cita>[] = [
   { encabezado: "Total", valor: (c) => `Q ${Number(c.total).toFixed(2)}` },
   {
     encabezado: "Mascota",
-    valor: (c) => (c.nombreMascota ? `${c.idMascota}. ${c.nombreMascota}` : "—"),
+    valor: (c) => c.nombreMascota ?? "—",
   },
   {
     encabezado: "Médico",
-    valor: (c) => (c.nombreMedico ? `${c.idMedico}. ${c.nombreMedico}` : "—"),
+    valor: (c) => c.nombreMedico ?? "—",
   },
 ];
 
@@ -43,7 +46,39 @@ function CitasPage() {
     cargando ? "…" : error || n === undefined ? "—" : n;
 
   // Datos y acciones del CRUD de citas
-  const c = useCitas();
+  const { esAdmin } = useAuth();
+
+  // Si llega desde "Iniciar cita" (Mascotas), se abre el formulario con la mascota elegida
+  const location = useLocation();
+  const [entrada] = useState<{ mascota?: number } | null>(() => {
+    const estado = location.state as {
+      nuevaCita?: boolean;
+      nuevaCitaMascota?: number;
+    } | null;
+    return estado?.nuevaCita ? { mascota: estado.nuevaCitaMascota } : null;
+  });
+  const c = useCitas(entrada);
+  useEffect(() => {
+    // Evita que el formulario se vuelva a abrir al recargar la página
+    if (entrada) window.history.replaceState({}, "");
+  }, [entrada]);
+
+  const filtros = useFiltros(c.citas, [
+    {
+      tipo: "select",
+      id: "atencion",
+      etiqueta: "Atención",
+      opciones: ["Atendida", "Pendiente"],
+      valor: (cita) =>
+        cita.idCita !== null && c.citasAtendidas.has(cita.idCita)
+          ? "Atendida"
+          : "Pendiente",
+    },
+    { tipo: "select", id: "medico", etiqueta: "Médico", valor: (cita) => cita.nombreMedico },
+    { tipo: "select", id: "mascota", etiqueta: "Mascota", valor: (cita) => cita.nombreMascota },
+    { tipo: "fecha", id: "fecha", etiqueta: "Fecha de la cita", valor: (cita) => cita.fecha },
+    { tipo: "numero", id: "total", etiqueta: "Total (Q)", valor: (cita) => cita.total },
+  ]);
 
   // Estado puramente visual de esta página
   const [searchParams, setSearchParams] = useSearchParams();
@@ -89,12 +124,14 @@ function CitasPage() {
         busqueda={busqueda}
         onBuscar={setBusqueda}
         onIniciarConsulta={() => setModalConsultaAbierto(true)}
-        onAgendar={c.abrirNuevo}
+        onAgendar={() => c.abrirNuevo()}
       />
+
+      <FiltrosTabla estado={filtros} />
 
       <TablaDatos
         columnas={columnasTabla}
-        datos={filtrarPorTexto(c.citas, busqueda)}
+        datos={filtrarPorTexto(filtros.filtrados, busqueda)}
         claveFila={(cita) => cita.idCita}
         acciones={(cita) => (
           <AccionesFila
@@ -106,8 +143,10 @@ function CitasPage() {
             }
             onEditar={() => c.handleModificar(cita)}
             onAnular={() => cita.idCita !== null && c.handleAnular(cita.idCita)}
-            onEliminar={() =>
-              cita.idCita !== null && c.handleEliminar(cita.idCita)
+            onEliminar={
+              esAdmin
+                ? () => cita.idCita !== null && c.handleEliminar(cita.idCita)
+                : undefined
             }
           />
         )}

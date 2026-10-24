@@ -1,25 +1,36 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import RutaProtegida from "./components/RutaProtegida";
-import LoginPage from "./pages/Login";
-import PaginaPrincipal from "./pages/PaginaPrincipal";
-import DuenosPage from "./pages/Duenos";
-import MascotasPage from "./pages/Mascotas";
-import CitasPage from "./pages/Citas";
-import ConsultasPage from "./pages/Consultas";
-import DetalleCitasPage from "./pages/DetalleCitas";
-import MedicamentosPage from "./pages/Medicamentos";
-import TratamientosPage from "./pages/Tratamientos";
-import MedicosPage from "./pages/Medicos";
-import UsuariosPage from "./pages/Usuarios";
-import PerfilesPage from "./pages/Perfiles";
-import Reportes from "./pages/Reportes";
-import Administracion from "./pages/Administracion";
+import Cargando from "./components/Cargando";
+const LoginPage = lazy(() => import("./pages/Login"));
+const PaginaPrincipal = lazy(() => import("./pages/PaginaPrincipal"));
+const DuenosPage = lazy(() => import("./pages/Duenos"));
+const MascotasPage = lazy(() => import("./pages/Mascotas"));
+const CitasPage = lazy(() => import("./pages/Citas"));
+const ConsultasPage = lazy(() => import("./pages/Consultas"));
+const DetalleCitasPage = lazy(() => import("./pages/DetalleCitas"));
+const MedicamentosPage = lazy(() => import("./pages/Medicamentos"));
+const TratamientosPage = lazy(() => import("./pages/Tratamientos"));
+const MedicosPage = lazy(() => import("./pages/Medicos"));
+const UsuariosPage = lazy(() => import("./pages/Usuarios"));
+const PerfilesPage = lazy(() => import("./pages/Perfiles"));
+const Reportes = lazy(() => import("./pages/Reportes"));
+const HistorialPage = lazy(() => import("./pages/Historial"));
+const Administracion = lazy(() => import("./pages/Administracion"));
+const NoEncontradoPage = lazy(() => import("./pages/NoEncontrado"));
 
 function App() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/login"
+        element={
+          <Suspense fallback={<Cargando />}>
+            <LoginPage />
+          </Suspense>
+        }
+      />
 
       {/* Todas las páginas con sesión comparten el sidebar */}
       <Route
@@ -55,7 +66,9 @@ function App() {
           }
         />
         <Route path="/reportes" element={<Reportes />} />
+        <Route path="/historial" element={<HistorialPage />} />
         <Route path="/administracion" element={<Administracion />} />
+        <Route path="*" element={<NoEncontradoPage />} />
       </Route>
     </Routes>
   );

@@ -7,7 +7,7 @@ interface Props {
   medicamento: Medicamentos;
   onEditar: () => void;
   onAnular: () => void;
-  onEliminar: () => void;
+  onEliminar?: () => void;
   onAjustarStock: (cambio: number) => Promise<void>;
 }
 
